@@ -4,7 +4,7 @@ __pycache__/
 dist/
 build/
 .venv/
-.nim-dtk/
+.kintoun/
 .pytest_cache/
 *.o
 *.dol

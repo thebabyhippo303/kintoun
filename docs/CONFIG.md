@@ -1,6 +1,6 @@
-# `nim-dtk.toml` Configuration Reference
+# `kintoun.toml` Configuration Reference
 
-`nim-dtk` automatically discovers `nim-dtk.toml` by walking upward from the current working directory (or pass `-c path/to/nim-dtk.toml`). Environment variables (`${VAR}`) and `~` are expanded in all path fields.
+`kintoun` automatically discovers `kintoun.toml` by walking upward from the current working directory (or pass `-c path/to/kintoun.toml`). Environment variables (`${VAR}`) and `~` are expanded in all path fields.
 
 ```toml
 [project]
@@ -35,7 +35,7 @@ budget_s = 60.0
 max_candidates = 600
 workers = 0              # 0 = auto (half of CPU cores, capped at 8)
 strategies = ["systematic", "register_focus", "random"]
-cache_dir = ".nim-dtk/cache"
+cache_dir = ".kintoun/cache"
 priors_file = ""         # optional JSON file mapping mutation family -> weight
 forbid_asm = true        # enforce pure C (reject inline asm / raw data)
 ```

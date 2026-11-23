@@ -1,6 +1,6 @@
 # Compiler Setup Guide
 
-NIM-DTK does not bundle any proprietary console compilers. Point `nim-dtk.toml` at your own toolchain installation.
+Kintoun does not bundle any proprietary console compilers. Point `kintoun.toml` at your own toolchain installation.
 
 ## SN ProDG (GameCube, under Wine)
 ```toml

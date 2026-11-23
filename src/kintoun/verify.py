@@ -1,4 +1,4 @@
-"""Strict matching-C verifier for NIM-DTK."""
+"""Strict matching-C verifier for Kintoun."""
 from __future__ import annotations
 
 import hashlib
@@ -7,14 +7,14 @@ import re
 import tempfile
 from typing import Any
 
-from nim_dtk.arch.elf import Object
-from nim_dtk.arch.ppc_elf import compare_bytes, link_function
-from nim_dtk.compiler import CompilerBackend, compile_failure
-from nim_dtk.search import repairs as repair_mod
-from nim_dtk.search import score as score_mod
-from nim_dtk.targets import TargetContext, TargetFunction
+from kintoun.arch.elf import Object
+from kintoun.arch.ppc_elf import compare_bytes, link_function
+from kintoun.compiler import CompilerBackend, compile_failure
+from kintoun.search import repairs as repair_mod
+from kintoun.search import score as score_mod
+from kintoun.targets import TargetContext, TargetFunction
 
-VERIFIER_VERSION = "nim-dtk-strict-v1"
+VERIFIER_VERSION = "kintoun-strict-v1"
 
 _ASM_CHEAT_RE = re.compile(
     r"\b(?:asm|__asm__|__asm|GLOBAL_ASM|opcode)\b|"
@@ -69,7 +69,7 @@ def verify_source(
         "verifier": VERIFIER_VERSION,
     }
 
-    with tempfile.TemporaryDirectory(prefix="nim_dtk_") as tmp:
+    with tempfile.TemporaryDirectory(prefix="kintoun_") as tmp:
         src_path = Path(tmp) / "candidate.c"
         obj_path = Path(tmp) / "candidate.o"
         src_path.write_bytes(raw_bytes)

@@ -2,7 +2,7 @@
 import itertools
 import re
 from contextvars import ContextVar
-from nim_dtk.search.repairs import hypotheses
+from kintoun.search.repairs import hypotheses
 
 # The search evaluator for the current thread, published by engine.install's
 # search wrapper (same ContextVar the directed() path already uses). Lets a

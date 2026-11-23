@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nim-dtk"
+name = "kintoun"
 version = "0.1.0"
 description = "Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF verifier."
 readme = "README.md"
@@ -28,7 +28,7 @@ dependencies = []
 mcp = ["mcp>=1.0"]
 
 [project.scripts]
-nim-dtk = "nim_dtk.cli:main"
+kintoun = "kintoun.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

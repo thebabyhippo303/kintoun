@@ -1,4 +1,4 @@
-"""Self-contained unit and end-to-end tests for NIM-DTK (no external compilers or ROMs required)."""
+"""Self-contained unit and end-to-end tests for Kintoun (no external compilers or ROMs required)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,16 +6,16 @@ import struct
 import tempfile
 import unittest
 
-from nim_dtk.arch.elf import Object
-from nim_dtk.arch.ppc_elf import compare_bytes, relocate_ppc, sda_references, symbol_name
-from nim_dtk.cache import ResultCache, source_key
-from nim_dtk.cli import main as cli_main
-from nim_dtk.compiler import CompileResult
-from nim_dtk.config import load_config
-from nim_dtk.search import base_mutations, guidance, mutations, permuter, repairs, score
-from nim_dtk.search.runner import run_search
-from nim_dtk.targets import TargetContext, TargetFunction, load_target_from_object
-from nim_dtk.verify import real_c_violation, verify_source
+from kintoun.arch.elf import Object
+from kintoun.arch.ppc_elf import compare_bytes, relocate_ppc, sda_references, symbol_name
+from kintoun.cache import ResultCache, source_key
+from kintoun.cli import main as cli_main
+from kintoun.compiler import CompileResult
+from kintoun.config import load_config
+from kintoun.search import base_mutations, guidance, mutations, permuter, repairs, score
+from kintoun.search.runner import run_search
+from kintoun.targets import TargetContext, TargetFunction, load_target_from_object
+from kintoun.verify import real_c_violation, verify_source
 
 
 def _build_ppc_elf32(func_name: str, code_bytes: bytes, relocs: list[tuple[int, int, str, int]] | None = None) -> bytes:
@@ -115,7 +115,7 @@ class _MockCompiler:
         return CompileResult(0, "", "", out_obj)
 
 
-class NimDtkTests(unittest.TestCase):
+class KintounTests(unittest.TestCase):
     def test_elf_parse_and_relocate_ppc(self) -> None:
         # bl 0x0 (0x48000001), blr (0x4E800020)
         raw = struct.pack(">II", 0x48000001, 0x4E800020)
@@ -210,7 +210,7 @@ class NimDtkTests(unittest.TestCase):
 
     def test_cli_init_and_info(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            cfg_file = Path(tmp) / "nim-dtk.toml"
+            cfg_file = Path(tmp) / "kintoun.toml"
             rc = cli_main(["init", "--preset", "prodg-wine", "-o", str(cfg_file)])
             self.assertEqual(rc, 0)
             cfg = load_config(cfg_file)

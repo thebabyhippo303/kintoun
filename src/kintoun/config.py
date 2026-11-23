@@ -1,4 +1,4 @@
-"""Configuration loader for nim-dtk.toml (stdlib tomllib, Python 3.11+)."""
+"""Configuration loader for kintoun.toml (stdlib tomllib, Python 3.11+)."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -36,13 +36,13 @@ class SearchConfig:
     max_candidates: int = 600
     workers: int = 0
     strategies: list[str] = field(default_factory=lambda: ["systematic", "register_focus", "random"])
-    cache_dir: str = ".nim-dtk/cache"
+    cache_dir: str = ".kintoun/cache"
     priors_file: str = ""
     forbid_asm: bool = True
 
 
 @dataclass
-class NimDtkConfig:
+class KintounConfig:
     root: Path
     project_name: str = "decomp-project"
     compiler: CompilerConfig = field(default_factory=CompilerConfig)
@@ -68,17 +68,17 @@ def _parse_int(val: Any, default: int = 0) -> int:
 def find_config(start: Path | None = None) -> Path | None:
     cur = (start or Path.cwd()).resolve()
     for parent in (cur, *cur.parents):
-        cand = parent / "nim-dtk.toml"
+        cand = parent / "kintoun.toml"
         if cand.is_file():
             return cand
     return None
 
 
-def load_config(path: Path | None = None) -> NimDtkConfig:
-    """Load nim-dtk.toml if found, otherwise return sensible defaults rooted at cwd."""
+def load_config(path: Path | None = None) -> KintounConfig:
+    """Load kintoun.toml if found, otherwise return sensible defaults rooted at cwd."""
     cfg_path = path or find_config()
     if cfg_path is None or not cfg_path.is_file():
-        return NimDtkConfig(root=Path.cwd().resolve())
+        return KintounConfig(root=Path.cwd().resolve())
 
     data = tomllib.loads(cfg_path.read_text(encoding="utf-8"))
     root = cfg_path.resolve().parent
@@ -111,11 +111,11 @@ def load_config(path: Path | None = None) -> NimDtkConfig:
         max_candidates=int(srch_raw.get("max_candidates", 600)),
         workers=int(srch_raw.get("workers", 0)),
         strategies=list(srch_raw.get("strategies", ["systematic", "register_focus", "random"])),
-        cache_dir=str(srch_raw.get("cache_dir", ".nim-dtk/cache")),
+        cache_dir=str(srch_raw.get("cache_dir", ".kintoun/cache")),
         priors_file=str(srch_raw.get("priors_file", "")),
         forbid_asm=bool(srch_raw.get("forbid_asm", True)),
     )
-    return NimDtkConfig(
+    return KintounConfig(
         root=root,
         project_name=str(proj.get("name", root.name)),
         compiler=compiler,

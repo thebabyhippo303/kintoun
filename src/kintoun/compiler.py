@@ -1,4 +1,4 @@
-"""Pluggable compiler backends for NIM-DTK (ProDG/Wine, MWCC/Wine, or any custom CLI)."""
+"""Pluggable compiler backends for Kintoun (ProDG/Wine, MWCC/Wine, or any custom CLI)."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 from typing import Protocol
 
-from nim_dtk.config import CompilerConfig, NimDtkConfig
+from kintoun.config import CompilerConfig, KintounConfig
 
 
 def compile_failure(output: str, limit: int = 2000) -> str:
@@ -108,8 +108,8 @@ class CommandCompiler:
             return CompileResult(127, "", f"compiler executable not found: {exc}", out_obj)
 
 
-def make_compiler(cfg: NimDtkConfig) -> CommandCompiler:
-    """Instantiate a CompilerBackend from NimDtkConfig."""
+def make_compiler(cfg: KintounConfig) -> CommandCompiler:
+    """Instantiate a CompilerBackend from KintounConfig."""
     cc: CompilerConfig = cfg.compiler
     cdir = cfg.resolve_path(cc.compiler_dir)
     env = dict(cc.env)
@@ -141,7 +141,7 @@ def make_compiler(cfg: NimDtkConfig) -> CommandCompiler:
     else:
         raise ValueError(
             f"Unsupported compiler preset '{cc.preset}'. "
-            "Use 'prodg-wine', 'mwcc-wine', 'gcc', or set compiler.command in nim-dtk.toml."
+            "Use 'prodg-wine', 'mwcc-wine', 'gcc', or set compiler.command in kintoun.toml."
         )
 
     return CommandCompiler(

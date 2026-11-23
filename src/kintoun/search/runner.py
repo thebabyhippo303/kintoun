@@ -10,11 +10,11 @@ import random
 import time
 from typing import Any
 
-from nim_dtk.cache import ResultCache, source_key
-from nim_dtk.compiler import CompilerBackend
-from nim_dtk.search import base_mutations, guidance, mutations, permuter
-from nim_dtk.targets import TargetContext, TargetFunction
-from nim_dtk.verify import real_c_violation, verify_source
+from kintoun.cache import ResultCache, source_key
+from kintoun.compiler import CompilerBackend
+from kintoun.search import base_mutations, guidance, mutations, permuter
+from kintoun.targets import TargetContext, TargetFunction
+from kintoun.verify import real_c_violation, verify_source
 
 GROUPS = {
     "statement": {"swap_stmts", "ordered_stores", "decl_order"},

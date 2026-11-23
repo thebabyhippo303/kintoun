@@ -1,6 +1,6 @@
 """Instruction-backed C repair hypotheses. These propose experiments, never facts about source."""
 import re
-from nim_dtk.arch.ppc_elf import symbol_name
+from kintoun.arch.ppc_elf import symbol_name
 
 
 def signed(value, bits):

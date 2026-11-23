@@ -23,5 +23,5 @@ budget_s = 60.0
 max_candidates = 600
 workers = 0
 strategies = ["systematic", "register_focus", "random"]
-cache_dir = ".nim-dtk/cache"
+cache_dir = ".kintoun/cache"
 forbid_asm = true

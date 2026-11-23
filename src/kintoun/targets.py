@@ -1,4 +1,4 @@
-"""Target binary, DOL, ELF object, and dtk symbol-map loaders for NIM-DTK."""
+"""Target binary, DOL, ELF object, and dtk symbol-map loaders for Kintoun."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -8,8 +8,8 @@ import re
 import struct
 from typing import Any
 
-from nim_dtk.arch.elf import Object
-from nim_dtk.config import NimDtkConfig
+from kintoun.arch.elf import Object
+from kintoun.config import KintounConfig
 
 _SYM_RE = re.compile(r"^(\S+)\s*=\s*\.([^:]+):(0x[0-9A-Fa-f]+);(.*)$")
 _SIZE_RE = re.compile(r"size:(0x[0-9A-Fa-f]+)")
@@ -112,8 +112,8 @@ def load_link_layout(path: Path | None) -> dict[str, dict[str, int]]:
     return out
 
 
-def load_target_from_config(cfg: NimDtkConfig) -> TargetContext:
-    """Build a TargetContext from nim-dtk.toml (DOL + dtk symbols.txt)."""
+def load_target_from_config(cfg: KintounConfig) -> TargetContext:
+    """Build a TargetContext from kintoun.toml (DOL + dtk symbols.txt)."""
     dol_path = cfg.resolve_path(cfg.target.dol)
     sym_path = cfg.resolve_path(cfg.target.symbols)
     layout_path = cfg.resolve_path(cfg.target.link_layout)

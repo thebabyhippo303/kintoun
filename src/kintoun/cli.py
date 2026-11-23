@@ -1,4 +1,4 @@
-"""Command-line interface for NIM-DTK."""
+"""Command-line interface for Kintoun."""
 from __future__ import annotations
 
 import argparse
@@ -6,12 +6,12 @@ import json
 from pathlib import Path
 import sys
 
-from nim_dtk import __version__
-from nim_dtk.compiler import make_compiler
-from nim_dtk.config import load_config
-from nim_dtk.search.runner import STRATEGIES, run_search
-from nim_dtk.targets import load_target_from_config, load_target_from_object
-from nim_dtk.verify import verify_source
+from kintoun import __version__
+from kintoun.compiler import make_compiler
+from kintoun.config import load_config
+from kintoun.search.runner import STRATEGIES, run_search
+from kintoun.targets import load_target_from_config, load_target_from_object
+from kintoun.verify import verify_source
 
 _PRESET_TEMPLATES = {
     "prodg-wine": """[project]
@@ -36,7 +36,7 @@ budget_s = 60.0
 max_candidates = 600
 workers = 0
 strategies = ["systematic", "register_focus", "random"]
-cache_dir = ".nim-dtk/cache"
+cache_dir = ".kintoun/cache"
 forbid_asm = true
 """,
     "mwcc-wine": """[project]
@@ -61,7 +61,7 @@ budget_s = 60.0
 max_candidates = 600
 workers = 0
 strategies = ["systematic", "register_focus", "random"]
-cache_dir = ".nim-dtk/cache"
+cache_dir = ".kintoun/cache"
 forbid_asm = true
 """,
     "custom": """[project]
@@ -85,7 +85,7 @@ budget_s = 60.0
 max_candidates = 600
 workers = 0
 strategies = ["systematic", "register_focus", "random"]
-cache_dir = ".nim-dtk/cache"
+cache_dir = ".kintoun/cache"
 forbid_asm = true
 """,
 }
@@ -97,7 +97,7 @@ def _resolve_target(args: argparse.Namespace, cfg):
     ctx = load_target_from_config(cfg)
     fn_spec = getattr(args, "func", None)
     if not fn_spec:
-        raise ValueError("Provide --func <name|0xADDR> (with dol+symbols in nim-dtk.toml) or --target <file.o>.")
+        raise ValueError("Provide --func <name|0xADDR> (with dol+symbols in kintoun.toml) or --target <file.o>.")
     return ctx, ctx.resolve_function(fn_spec)
 
 
@@ -205,27 +205,27 @@ def cmd_info(args: argparse.Namespace) -> int:
 
 
 def cmd_mcp(args: argparse.Namespace) -> int:
-    from nim_dtk.mcp_server import run_mcp
+    from kintoun.mcp_server import run_mcp
 
     run_mcp(Path(args.config) if args.config else None)
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="nim-dtk", description="NIM-DTK matching-C decompilation permuter & verifier.")
-    p.add_argument("--version", action="version", version=f"nim-dtk {__version__}")
-    p.add_argument("-c", "--config", help="Path to nim-dtk.toml (auto-discovered upward if omitted).")
+    p = argparse.ArgumentParser(prog="kintoun", description="Kintoun matching-C decompilation permuter & verifier.")
+    p.add_argument("--version", action="version", version=f"kintoun {__version__}")
+    p.add_argument("-c", "--config", help="Path to kintoun.toml (auto-discovered upward if omitted).")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    p_init = sub.add_parser("init", help="Create a starter nim-dtk.toml in the current directory.")
+    p_init = sub.add_parser("init", help="Create a starter kintoun.toml in the current directory.")
     p_init.add_argument("--preset", choices=sorted(_PRESET_TEMPLATES), default="prodg-wine")
-    p_init.add_argument("-o", "--output", default="nim-dtk.toml")
+    p_init.add_argument("-o", "--output", default="kintoun.toml")
     p_init.add_argument("--force", action="store_true")
     p_init.set_defaults(func_cb=cmd_init)
 
     p_ver = sub.add_parser("verify", help="Compile and strictly verify a C file against a target.")
     p_ver.add_argument("source", help="Path to candidate .c file.")
-    p_ver.add_argument("--func", help="Function name or 0xADDRESS (from nim-dtk.toml DOL+symbols).")
+    p_ver.add_argument("--func", help="Function name or 0xADDRESS (from kintoun.toml DOL+symbols).")
     p_ver.add_argument("--target", help="Standalone target .o file (alternative to DOL+symbols).")
     p_ver.add_argument("--lines", type=int, default=24, help="Max diff lines to show.")
     p_ver.add_argument("--json", action="store_true", help="Emit full JSON output.")
@@ -233,7 +233,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_perm = sub.add_parser("permute", help="Run parallel real-C mutation & register-permutation search.")
     p_perm.add_argument("source", help="Path to candidate .c file.")
-    p_perm.add_argument("--func", help="Function name or 0xADDRESS (from nim-dtk.toml DOL+symbols).")
+    p_perm.add_argument("--func", help="Function name or 0xADDRESS (from kintoun.toml DOL+symbols).")
     p_perm.add_argument("--target", help="Standalone target .o file (alternative to DOL+symbols).")
     p_perm.add_argument("--budget", type=float, default=None, help="Search time budget in seconds.")
     p_perm.add_argument("--max-candidates", type=int, default=None, help="Max candidates to evaluate.")
@@ -245,10 +245,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_perm.add_argument("--json", action="store_true", help="Emit full JSON output.")
     p_perm.set_defaults(func_cb=cmd_permute)
 
-    p_info = sub.add_parser("info", help="Show resolved NIM-DTK configuration and available strategies.")
+    p_info = sub.add_parser("info", help="Show resolved Kintoun configuration and available strategies.")
     p_info.set_defaults(func_cb=cmd_info)
 
-    p_mcp = sub.add_parser("mcp", help="Start the optional single-user MCP server (requires `pip install nim-dtk[mcp]`).")
+    p_mcp = sub.add_parser("mcp", help="Start the optional single-user MCP server (requires `pip install kintoun[mcp]`).")
     p_mcp.set_defaults(func_cb=cmd_mcp)
     return p
 
@@ -259,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return args.func_cb(args)
     except Exception as exc:
-        print(f"nim-dtk error: {exc}", file=sys.stderr)
+        print(f"kintoun error: {exc}", file=sys.stderr)
         return 2
 
 

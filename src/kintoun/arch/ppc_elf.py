@@ -6,7 +6,7 @@ import hashlib
 import re
 from typing import Any
 
-from nim_dtk.arch.elf import Object
+from kintoun.arch.elf import Object
 
 
 def symbol_name(objects: dict[int, tuple[str, int]], address: int) -> str:
