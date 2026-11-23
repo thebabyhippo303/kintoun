@@ -1,6 +1,6 @@
 # Kintoun
 
-**Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF verifier.**
+**Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict PowerPC ELF32 verifier.**
 
 Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)) and now open-sourced for any decompilation project.
 
@@ -44,7 +44,15 @@ kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
 * [docs/CONFIG.md](docs/CONFIG.md) — `kintoun.toml` schema and options
 * [docs/COMPILERS.md](docs/COMPILERS.md) — Setting up SN ProDG, MWCC, and custom compilers
 
-## License & Output Exception
+## MCP server
+An optional MCP server exposes Kintoun's verify, permute, and info commands as MCP tools. Install the optional extra, then start the server:
+
+```bash
+pip install -e ".[mcp]"
+kintoun mcp
+```
+
+## License
 Kintoun itself is licensed under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)** — see [LICENSE](LICENSE). No copyrighted game assets, ROMs, or proprietary compilers are included.
 
-**Output / Decompilation Exception:** Running Kintoun on your source files does **not** place your C source code, decompilations, or build outputs under the GPL. Any C code written, mutated, permuted, or verified using Kintoun is **not** a derivative work of Kintoun and may be licensed however its authors choose (including CC0 / Public Domain, MIT, or any other license).
+The output exception is in [LICENSE](LICENSE) as an additional permission under GNU GPL version 3 section 7.

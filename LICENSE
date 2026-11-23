@@ -672,3 +672,24 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
+
+                    KINTOUN OUTPUT EXCEPTION
+
+Copyright (C) 2026 TheBabyHippo303
+
+Additional permission under GNU GPL version 3 section 7
+
+This Exception is an additional permission under section 7 of the GNU
+General Public License, version 3 ("GPLv3").  It applies to this
+Program, Kintoun.
+
+If you write, mutate, permute, or verify C source, decompilations, or
+build outputs with this Program, those C source files, decompilations,
+and build outputs are not derivative works of this Program and are not
+covered by the GNU General Public License.  Their authors may license
+them under any terms, including CC0, public domain, MIT, or any other
+license.
+
+This additional permission covers those outputs only.  It does not
+apply to this Program's own source code, which remains licensed under
+the GNU General Public License, version 3 or later.
