@@ -1,0 +1,27 @@
+# Drop this file into the root of thebabyhippo303/dbzsagas-decomp
+# and set PRODG_DIR=/path/to/prodg_393
+
+[project]
+name = "dbzsagas-decomp"
+
+[compiler]
+preset = "prodg-wine"
+compiler_dir = "${PRODG_DIR}"
+wine = "wine"
+flags = ["-O2", "-c"]
+timeout_s = 30.0
+
+[target]
+arch = "ppc_elf"
+dol = "orig/GZEE70/sys/main.dol"
+symbols = "config/GZEE70/symbols.txt"
+sda_r13 = "0x803E4360"
+sda_r2 = "0x803F4360"
+
+[search]
+budget_s = 60.0
+max_candidates = 600
+workers = 0
+strategies = ["systematic", "register_focus", "random"]
+cache_dir = ".nim-dtk/cache"
+forbid_asm = true

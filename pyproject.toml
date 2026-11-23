@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nim-dtk"
+version = "0.1.0"
+description = "Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF verifier."
+readme = "README.md"
+license = {text = "GPL-3.0-or-later"}
+requires-python = ">=3.11"
+authors = [
+    {name = "TheBabyHippo303"},
+]
+keywords = ["decompilation", "permuter", "matching-c", "powerpc", "gamecube", "reverse-engineering"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Disassemblers",
+]
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0"]
+
+[project.scripts]
+nim-dtk = "nim_dtk.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
