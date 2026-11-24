@@ -88,6 +88,7 @@ One overseer agent gets all 500 in one fresh, empty workspace and a single 30 mi
 | **Gemini 4 Neon (high) overseer + Gemini 4 Hydrogen (high) workers + Kintoun, 30 min** | **500** | **500** | **198** | **39.6%** | **69.1%** | **84.4%** | **261** | **209** |
 | **Claude Fable 5.2 (high) overseer + Claude Sonnet 5.5 (high) workers + Kintoun, 30 min** | **500** | **500** | **168** | **33.6%** | **67.4%** | **81.1%** | **254** | **192** |
 | **Muse Wonder Full 1.0 (high) overseer + Muse Spark 1.3 (high) workers + Kintoun, 30 min** | **500** | **500** | **73** | **14.6%** | **51.5%** | **50.0%** | **132** | **77** |
+| **Grok 4.7 (high) overseer + Grok 4.7 (high) workers + Kintoun, 30 min** | **500** | **500** | **64** | **12.8%** | **43.0%** | **33.9%** | **109** | **68** |
 
 How each overseer ran its team:
 
@@ -96,6 +97,7 @@ How each overseer ran its team:
 | Gemini 4 Neon (high) | Gemini 4 Hydrogen (high) | 57 | 32 | 732 | 15 | a Kintoun triage of all 500 first, then two workers per game, then smaller rounds aimed at near misses |
 | Claude Fable 5.2 (high) | Claude Sonnet 5.5 (high) | 101 | 40 | 895 | 16 | two workers per game, then a fresh worker for a share whenever one stopped, and merged shares late in the clock |
 | Muse Wonder Full 1.0 (high) | Muse Spark 1.3 (high) | 16 | 16 | 428 | 0 | one worker per game for the whole clock |
+| Grok 4.7 (high) | Grok 4.7 (high) | 4 | 4 | 76 | 0 | a breadth first Kintoun permute script over every function, smallest first, for the whole clock; at minute 10, four workers on groups of games fixing near misses by hand |
 
 Full tables by size and kind are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md). The overseer and worker briefs are generic templates (`src/kintoun/templates/overseer/`): a new overseer test only needs a run file with its models, effort, clock and worker limit.
 

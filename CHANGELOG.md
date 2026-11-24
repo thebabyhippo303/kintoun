@@ -8,6 +8,7 @@
 * **First result:** 500 functions from 16 games, Gemini 4 Neon overseer with Gemini 4 Hydrogen workers, 30 minutes: all 500 compile, 198 match exactly, 69.1% mean alignment (84.4% median); headless alone: 358 compile, 44 exact, 39.2%.
 * **Second result:** the same 500 functions, Muse Wonder Full 1.0 overseer with Muse Spark 1.3 workers: all 500 compile, 73 match exactly, 51.5% mean alignment (50.0% median); it ran one worker per game for the whole clock, where the Gemini team started 57 workers.
 * **Third result:** the same 500 functions, Claude Fable 5.2 overseer with Claude Sonnet 5.5 workers: all 500 compile, 168 match exactly, 67.4% mean alignment (81.1% median); it started 101 workers, 40 at most at once.
+* **Fourth result:** the same 500 functions, Grok 4.7 overseer with Grok 4.7 workers: all 500 compile, 64 match exactly, 43.0% mean alignment (33.9% median); it started 4 workers, 4 at most at once.
 
 ## 0.8.0
 
