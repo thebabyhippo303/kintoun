@@ -522,13 +522,17 @@ def cmd_permute(args: argparse.Namespace) -> int:
 
 
 def cmd_info(args: argparse.Namespace) -> int:
+    from kintoun.engine_lab import active_overlay_src_dir
+
     cfg = load_config(Path(args.config) if args.config else None)
+    overlay = active_overlay_src_dir(cfg.root)
     payload = {
         "version": __version__,
         "project": cfg.project_name,
         "root": str(cfg.root),
         "compiler_preset": cfg.compiler.preset,
         "target_arch": cfg.target.arch,
+        "local_engine_overlay": str(overlay) if overlay else None,
         "strategies": list(STRATEGIES),
         "search_mode": cfg.search.mode,
         "budget_s": cfg.search.budget_s,
@@ -1043,6 +1047,95 @@ def cmd_export_dataset(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_engine(args: argparse.Namespace) -> int:
+    from kintoun.engine_lab import EngineLab
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    lab = EngineLab(cfg)
+    act = args.action
+
+    if act == "init":
+        out = lab.init_lab(builders=args.builders)
+    elif act == "status":
+        out = lab.status()
+    elif act == "sync":
+        if not args.builder:
+            raise ValueError("engine sync requires --builder <id>")
+        out = lab.sync_builder(args.builder, force=args.force)
+    elif act == "commit":
+        if not args.builder or not args.claim:
+            raise ValueError("engine commit requires --builder <id> and --claim <description>")
+        out = lab.commit_builder(args.builder, args.claim)
+    elif act == "findings":
+        sub_act = args.findings_action or "show"
+        if sub_act == "show":
+            out = lab.findings_show(limit=args.limit)
+        elif sub_act == "start":
+            if not args.builder or not args.change:
+                raise ValueError("engine findings start requires --builder and --change")
+            out = lab.findings_start(args.builder, args.change, what=args.what or "")
+        elif sub_act == "log":
+            if not args.builder or not args.change:
+                raise ValueError("engine findings log requires --builder and --change")
+            out = lab.findings_log(
+                args.builder,
+                args.change,
+                dev_summary=args.dev or "",
+                verdict=args.verdict or "tested",
+                lesson=args.lesson or "",
+            )
+        elif sub_act == "done":
+            if not args.builder:
+                raise ValueError("engine findings done requires --builder")
+            out = lab.findings_done(args.builder)
+        else:
+            raise ValueError(f"unknown findings action: {sub_act}")
+    elif act == "make-dev":
+        ctx = load_target_from_config(cfg)
+        out = lab.make_dev_set(
+            ctx,
+            out_path=Path(args.output) if args.output else None,
+            count=args.count,
+            seed=args.seed,
+            seeds_dir=Path(args.seeds_dir) if args.seeds_dir else None,
+        )
+    elif act == "bench":
+        if not args.set:
+            raise ValueError("engine bench requires --set <manifest.json>")
+        out = lab.run_isolated_arm(
+            args.arm,
+            Path(args.set),
+            budget_s=parse_duration_s(args.budget, 15.0),
+            max_candidates=args.max_candidates,
+            workers=args.workers,
+            mark_builder_seen=True,
+        )
+    elif act == "gate":
+        out = lab.run_unseen_gate(
+            candidate_arm=args.candidate,
+            count=args.count,
+            budget_s=parse_duration_s(args.budget, 20.0),
+            max_candidates=args.max_candidates,
+            workers=args.workers,
+            min_functions=args.min_functions,
+            confirm_runs=args.confirm_runs,
+            ablate=not args.no_ablate,
+            promote=args.promote,
+            seeds_dir=Path(args.seeds_dir) if args.seeds_dir else None,
+            pool_manifest=Path(args.pool_manifest) if args.pool_manifest else None,
+        )
+    elif act == "rollback":
+        bdir = Path(args.backup) if (args.backup and args.backup != "LATEST") else None
+        out = lab.rollback(bdir, disable_overlay=args.disable)
+    else:
+        raise ValueError(f"unknown engine action: {act}")
+
+    print(json.dumps(out, indent=2))
+    if act == "gate":
+        return 0 if out.get("win") else 1
+    return 0 if out.get("ok", True) else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="kintoun", description="Kintoun matching-C decompilation permuter & verifier.")
     p.add_argument("--version", action="version", version=f"kintoun {__version__}")
@@ -1265,10 +1358,90 @@ def build_parser() -> argparse.ArgumentParser:
     p_exp.add_argument("--kinds", default="sft_decomp,sft_repair,dpo_pair", help="Comma-separated record kinds to export.")
     p_exp.add_argument("--json", action="store_true", help="Emit JSON summary.")
     p_exp.set_defaults(func_cb=cmd_export_dataset)
+
+    p_eng = sub.add_parser(
+        "engine",
+        help="Self-learning side-tree Engine Lab with blind unseen promotion gate, ablation, and rollback.",
+    )
+    p_eng.add_argument(
+        "action",
+        choices=["init", "status", "sync", "commit", "findings", "make-dev", "bench", "gate", "rollback"],
+    )
+    p_eng.add_argument("findings_action", nargs="?", choices=["show", "start", "log", "done"], help="Sub-action for `findings`.")
+    p_eng.add_argument("--builders", type=int, default=4, help="Number of builder side trees on `init` (default 4).")
+    p_eng.add_argument("--builder", help="Builder identifier (e.g. b1, b2, b3, b4).")
+    p_eng.add_argument("--claim", help="One-line description of improvement for `commit`.")
+    p_eng.add_argument("--force", action="store_true", help="Discard uncommitted builder edits on `sync`.")
+    p_eng.add_argument("--change", help="Short slug for `findings start/log`.")
+    p_eng.add_argument("--what", help="Hypothesis summary for `findings start`.")
+    p_eng.add_argument("--dev", help="Dev benchmark summary for `findings log`.")
+    p_eng.add_argument("--verdict", help="Verdict label (`committed`, `reverted`, `tested`) for `findings log`.")
+    p_eng.add_argument("--lesson", help="One-line takeaway for `findings log`.")
+    p_eng.add_argument("--limit", type=int, default=15, help="Max entries for `findings show`.")
+    p_eng.add_argument("-o", "--output", help="Output manifest path for `make-dev`.")
+    p_eng.add_argument("--set", help="Dev manifest path for `bench`.")
+    p_eng.add_argument("--arm", default="live", help="Engine arm for `bench` (`live`, `combined`, `b1`..`b4`, or path).")
+    p_eng.add_argument("--candidate", default="combined", help="Candidate arm for `gate` (default `combined`).")
+    p_eng.add_argument("--count", type=int, default=40, help="Number of functions to sample (`make-dev` or unseen `gate`).")
+    p_eng.add_argument("--min-functions", type=int, default=4, help="Minimum unseen sample size required by `gate`.")
+    p_eng.add_argument("--seed", type=int, default=1, help="RNG seed for `make-dev`.")
+    p_eng.add_argument("--budget", type=str, default="20s", help="Per-function search budget.")
+    p_eng.add_argument("--max-candidates", type=int, default=250, help="Max candidates per function.")
+    p_eng.add_argument("--workers", type=int, default=1, help="Worker count inside isolated arm benchmark.")
+    p_eng.add_argument("--confirm-runs", type=int, default=1, help="Independent unseen gate draws required before win (1..3).")
+    p_eng.add_argument("--no-ablate", action="store_true", help="Skip per-commit ablation on `combined` during `gate`.")
+    p_eng.add_argument("--promote", action="store_true", help="Promote candidate into `live/` and enable overlay if gate wins.")
+    p_eng.add_argument("--seeds-dir", help="Optional directory of initial `<func>.c` seeds.")
+    p_eng.add_argument("--pool-manifest", help="Optional JSON manifest pool for unseen gate sampling.")
+    p_eng.add_argument("--backup", default="LATEST", help="Backup directory (or LATEST) for `rollback`.")
+    p_eng.add_argument("--disable", action="store_true", help="Disable project-local engine overlay (`rollback --disable`).")
+    p_eng.add_argument("--json", action="store_true", help="Emit JSON output.")
+    p_eng.set_defaults(func_cb=cmd_engine)
     return p
 
 
+def _maybe_reexec_into_local_overlay(argv: list[str] | None) -> int | None:
+    """When invoked from CLI (`argv is None`) in a project with a promoted `live/` engine, delegate to it."""
+    if argv is not None:
+        return None
+    import os
+    import subprocess
+
+    if os.environ.get("KINTOUN_OVERLAY_ACTIVE") == "1" or os.environ.get("KINTOUN_DISABLE_LOCAL_ENGINE") == "1":
+        return None
+    raw_args = sys.argv[1:]
+    # Never delegate `engine` management/rollback commands so `engine rollback` is always immune to side-tree bugs.
+    non_flag = [a for i, a in enumerate(raw_args) if not a.startswith("-") and (i == 0 or raw_args[i - 1] not in ("-c", "--config"))]
+    if not non_flag or non_flag[0] in ("engine", "init"):
+        return None
+
+    cfg_arg: Path | None = None
+    for i, a in enumerate(raw_args):
+        if a in ("-c", "--config") and i + 1 < len(raw_args):
+            cfg_arg = Path(raw_args[i + 1])
+            break
+    try:
+        cfg = load_config(cfg_arg)
+    except Exception:
+        return None
+
+    from kintoun.engine_lab import active_overlay_src_dir
+
+    overlay_src = active_overlay_src_dir(cfg.root)
+    if overlay_src is None:
+        return None
+
+    existing_pp = os.environ.get("PYTHONPATH", "")
+    pp = f"{overlay_src}{os.pathsep}{existing_pp}" if existing_pp else str(overlay_src)
+    env = {**os.environ, "PYTHONPATH": pp, "KINTOUN_OVERLAY_ACTIVE": "1", "PYTHONDONTWRITEBYTECODE": "1"}
+    proc = subprocess.run([sys.executable, "-B", "-m", "kintoun.cli", *raw_args], env=env)
+    return int(proc.returncode)
+
+
 def main(argv: list[str] | None = None) -> int:
+    delegated_rc = _maybe_reexec_into_local_overlay(argv)
+    if delegated_rc is not None:
+        return delegated_rc
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

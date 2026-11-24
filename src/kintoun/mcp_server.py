@@ -438,4 +438,38 @@ def run_mcp(config_path: Path | None = None) -> None:
         sdir = (Path(src_dir) if Path(src_dir).is_absolute() else (cfg.root / src_dir)) if src_dir else (cfg.root / "src")
         return json.dumps(export_dataset(cache_dir, ctx, src_dir=sdir, out_path=out_p), indent=2)
 
+    @mcp.tool()
+    def kintoun_engine_status() -> str:
+        """Inspect `.kintoun/engine_lab/` side trees, combined commits, findings, and unseen gate ledger."""
+        from kintoun.engine_lab import EngineLab
+
+        return json.dumps(EngineLab(cfg).status(), indent=2)
+
+    @mcp.tool()
+    def kintoun_engine_gate(
+        candidate_arm: str = "combined",
+        count: int = 40,
+        budget_s: float = 20.0,
+        max_candidates: int = 250,
+        confirm_runs: int = 1,
+        ablate: bool = True,
+        promote: bool = False,
+    ) -> str:
+        """Run `live` vs `candidate_arm` on a fresh blind unseen function draw, ablate commits, and optionally promote."""
+        from kintoun.engine_lab import EngineLab
+
+        lab = EngineLab(cfg)
+        return json.dumps(
+            lab.run_unseen_gate(
+                candidate_arm=candidate_arm,
+                count=count,
+                budget_s=budget_s,
+                max_candidates=max_candidates,
+                confirm_runs=confirm_runs,
+                ablate=ablate,
+                promote=promote,
+            ),
+            indent=2,
+        )
+
     mcp.run()

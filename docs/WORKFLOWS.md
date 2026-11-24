@@ -57,10 +57,10 @@ kintoun queue submit --agent agent-1 --func Player__Update --source src/Player/U
   --category missing_cast --note "Changed count field from s16 to u16 to replace extsh with clrlwi"
 ```
 
-When running `kintoun mcp`, agents get 23 structured MCP tools out of the box:
+When running `kintoun mcp`, agents get 25 structured MCP tools out of the box:
 * **Inspection, Import, Headers & Atlas:** `kintoun_info`, `kintoun_doctor`, `kintoun_check`, `kintoun_context_pack`, `kintoun_probe_flags`, `kintoun_scratch`, `kintoun_import_function`, `kintoun_integrate_match`, `kintoun_synth_headers`, `kintoun_atlas`, `kintoun_export_dataset`
 * **Surgical Iteration, Search & Cleanup:** `kintoun_verify`, `kintoun_score_candidate`, `kintoun_revise_candidate`, `kintoun_score_candidates`, `kintoun_permute`, `kintoun_close_near_miss`, `kintoun_clean_match`
-* **Queue & Chess Clock:** `kintoun_claim_next`, `kintoun_clock`, `kintoun_submit_match`, `kintoun_fail_claim`, `kintoun_queue_status`
+* **Queue, Chess Clock & Engine Lab:** `kintoun_claim_next`, `kintoun_clock`, `kintoun_submit_match`, `kintoun_fail_claim`, `kintoun_queue_status`, `kintoun_engine_status`, `kintoun_engine_gate`
 
 ---
 
@@ -148,9 +148,10 @@ For binaries linking SDK or middleware built with a different compiler, add `[[c
 
 ---
 
-## 8. Portable Agent Skills (`skills/CLI-OVERSEER/` and `skills/kintoun-match/`)
+## 8. Portable Agent Skills (`CLI-OVERSEER`, `ENGINE-BUILDER`, and `kintoun-match`)
 
 * **`skills/CLI-OVERSEER/SKILL.md`:** Orchestrator skill enabling any standard CLI coding agent to delegate parallel **Namer** and **Matcher** subagents over Kintoun's queue and governor (standalone or alongside `kintoun overseer`). Includes copy-ready subagent brief templates in `skills/CLI-OVERSEER/references/subagent-briefs.md`.
+* **`skills/ENGINE-BUILDER/SKILL.md`:** Self-learning side-tree engine evolution skill enabling 1 to 4 **Engine Builder** subagents to iterate rapidly inside `.kintoun/engine_lab/builders/b1..b4`, stack commits onto `combined`, and promote a project-local engine only when `kintoun engine gate --promote` proves higher `%` close to matched and more exact matches on a wide array of unseen functions (with per-commit ablation and 1-command `kintoun engine rollback`).
 * **`skills/kintoun-match/SKILL.md`:** Matcher workflow skill with dedicated symptom-to-C lookup tables for PowerPC (`powerpc.md`), MIPS (`mips.md`), and ARM/Thumb (`arm.md`).
 
-Copy or symlink either skill folder into your agent's skill directory (`.claude/skills/`, `.codex/skills/`, `.gemini/skills/`, or Cursor rules).
+Copy or symlink these skill folders into your agent's skill directory (`.claude/skills/`, `.codex/skills/`, `.gemini/skills/`, or Cursor rules).

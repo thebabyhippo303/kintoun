@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.7.0
+
+Kintoun has been trained through research and development on TNRP's 15 game codebase.
+
+### Self learning side tree Engine Lab and `ENGINE-BUILDER` skill
+* **Isolated side trees and stacked `combined` git repo (`engine_lab.py`, `kintoun engine init/sync/commit/status`):** Creates a project local `.kintoun/engine_lab/` workspace with `live/`, a local git `combined/` branch that stacks discrete `[bN] <claim>` commits via 3 way merge, and 1 to N isolated builder side trees (`builders/b1`..`b4`) so personal decomp projects can evolve project specific mutations, seed repairs and search heuristics safely.
+* **Shared findings board and hypothesis lock (`kintoun engine findings`):** Append only `findings.md` log and `inflight.json` lock prevent parallel builders from duplicating in flight ideas and preserve lessons across waves.
+* **Blind unseen promotion gate and per commit ablation (`kintoun engine gate`, `kintoun_engine_gate`):** Permanently records every `dev` and builder `bench` function in `seen_functions.json` (`seen_by_builders`) and dynamically samples a wide, size stratified array of plain C functions that neither `live` nor `candidate` has ever seen before, preventing benchmark overfitting. Multi commit `combined` stacks are ablated (`HEAD` vs `HEAD-without-commit`) to auto revert non contributing commits, and `candidate` replaces `live` only when it strictly improves both `%` close to matched (`mean_aligned_pct`) and `exact matches` (`verified`) with zero lost exact matches.
+* **Automatic project overlay and 1 command rollback (`active_engine.json`, `kintoun engine rollback`):** Promoted engines activate automatically for subsequent `permute`, `close`, `overseer` and `mcp` runs in that repository while saving full backups and `PROMOTION_MANIFEST.json` for instant 1 command rollback.
+* **Portable `ENGINE-BUILDER` skill pack (`skills/ENGINE-BUILDER/`):** Adds `SKILL.md` and `references/builder-briefs.md` for solo or 4 lane parallel `ENGINE-BUILDER` subagents paired with `CLI-OVERSEER`.
+
 ## 0.6.0
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase.

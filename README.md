@@ -2,7 +2,7 @@
 
 **Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF32 verifier for PowerPC, MIPS, and ARM.**
 
-Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)), expanded in **0.2.0** with dedicated first-class **MIPS** and **ARM / Thumb** engines, expanded in **0.3.0** with a single-machine governor, zero-LLM near-miss closer, multi-agent chess-clock queue, Overseer, and agent skills (`CLI-OVERSEER` and `kintoun-match`), expanded in **0.4.0** with binary xrefs, struct-field consensus, inlined-helper detection, bit-exact `.rodata` float & magic-division solving, wrong-compiler fingerprinting + `[[compiler_bands]]`, `kintoun probe-flags`, and `kintoun scratch` (`decomp.me`), expanded in **0.5.0** with pure-stdlib `KINTOUN_*` permutation macros (decomp-permuter `PERM_*` names accepted) + beam-search hybrid, `INCLUDE_ASM`/`GLOBAL_ASM` + `.map` project `import` & full-TU verified `integrate`, TF-IDF assembly similarity + logistic match calibration, and a single-file HTML Decomp Atlas (`kintoun atlas`), and expanded in **0.6.0** with zero-config `objdiff.json` / `dtk` / `splat.yaml` ingestion, byte-verified post-match C cleanup (`kintoun clean`), live editor `kintoun watch`, factual binary struct/vtable header synthesis (`kintoun synth-headers`), `kintoun doctor`, and verifiable SFT/DPO dataset export (`kintoun export-dataset`).
+Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)), expanded in **0.2.0** with dedicated first-class **MIPS** and **ARM / Thumb** engines, expanded in **0.3.0** with a single-machine governor, zero-LLM near-miss closer, multi-agent chess-clock queue, Overseer, and agent skills (`CLI-OVERSEER` and `kintoun-match`), expanded in **0.4.0** with binary xrefs, struct-field consensus, inlined-helper detection, bit-exact `.rodata` float & magic-division solving, wrong-compiler fingerprinting + `[[compiler_bands]]`, `kintoun probe-flags`, and `kintoun scratch` (`decomp.me`), expanded in **0.5.0** with pure-stdlib `KINTOUN_*` permutation macros (decomp-permuter `PERM_*` names accepted) + beam-search hybrid, `INCLUDE_ASM`/`GLOBAL_ASM` + `.map` project `import` & full-TU verified `integrate`, TF-IDF assembly similarity + logistic match calibration, and a single-file HTML Decomp Atlas (`kintoun atlas`), expanded in **0.6.0** with zero-config `objdiff.json` / `dtk` / `splat.yaml` ingestion, byte-verified post-match C cleanup (`kintoun clean`), live editor `kintoun watch`, factual binary struct/vtable header synthesis (`kintoun synth-headers`), `kintoun doctor`, and verifiable SFT/DPO dataset export (`kintoun export-dataset`), and expanded in **0.7.0** with a self-learning side-tree Engine Lab (`kintoun engine`) and `ENGINE-BUILDER` subagent skill gated on blind unseen functions.
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase. On a held out benchmark of 69 real console functions it starts from raw `m2c` output and reaches 63.6% aligned on average (75% median), with 8 exact matches. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
@@ -62,6 +62,10 @@ kintoun watch src/player.c --func Player_Update --auto-close-at 90
 kintoun synth-headers -o include/synth_types.h
 kintoun doctor --scan-dir tools
 kintoun export-dataset -o dataset.jsonl
+
+# Self-learning side-tree Engine Lab (for ENGINE-BUILDER subagents; promotes only on blind unseen wins):
+kintoun engine init --builders 4
+kintoun engine gate --candidate combined --count 40 --confirm-runs 2 --ablate --promote
 ```
 
 ## Plugging into `dbzsagas-decomp`
@@ -84,10 +88,11 @@ kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
 * [docs/CONFIG.md](docs/CONFIG.md) - `kintoun.toml` schema, governor, and `[overseer]` options
 * [docs/COMPILERS.md](docs/COMPILERS.md) - Setting up ProDG, MWCC, `ee-gcc`, `psp-gcc`, `mips-gcc`, `agbcc`, `arm-none-eabi-gcc`, and `mwccarm`
 * [skills/CLI-OVERSEER/SKILL.md](skills/CLI-OVERSEER/SKILL.md) - orchestrator skill delegating to Matcher and Namer subagents
+* [skills/ENGINE-BUILDER/SKILL.md](skills/ENGINE-BUILDER/SKILL.md) - side-tree engine evolution skill gated on blind unseen functions
 * [skills/kintoun-match/SKILL.md](skills/kintoun-match/SKILL.md) - matcher skill & PowerPC / MIPS / ARM symptom-to-C lookup tables
 
 ## MCP server
-An optional MCP server exposes 23 Kintoun tools (`verify`, `permute`, `info`, `doctor`, `check`, `context_pack`, `probe_flags`, `scratch`, `import_function`, `integrate_match`, `clean_match`, `synth_headers`, `atlas`, `export_dataset`, `score_candidate`, `revise_candidate`, `score_candidates`, `close_near_miss`, `claim_next`, `clock`, `submit_match`, `fail_claim`, and `queue_status`). Install the optional extra, then start the server:
+An optional MCP server exposes 25 Kintoun tools (`verify`, `permute`, `info`, `doctor`, `check`, `context_pack`, `probe_flags`, `scratch`, `import_function`, `integrate_match`, `clean_match`, `synth_headers`, `atlas`, `export_dataset`, `score_candidate`, `revise_candidate`, `score_candidates`, `close_near_miss`, `claim_next`, `clock`, `submit_match`, `fail_claim`, `queue_status`, `engine_status`, and `engine_gate`). Install the optional extra, then start the server:
 
 ```bash
 pip install -e ".[mcp]"

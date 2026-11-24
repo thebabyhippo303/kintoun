@@ -1,6 +1,6 @@
 # AGENTS.md - Kintoun Setup, Workflow, and Maintenance Guide for AI Agents
 
-**Current Version:** `0.6.0` (keep this file updated alongside `pyproject.toml`, `src/kintoun/__init__.py`, and `CHANGELOG.md` on every release).
+**Current Version:** `0.7.0` (keep this file updated alongside `pyproject.toml`, `src/kintoun/__init__.py`, and `CHANGELOG.md` on every release).
 
 This guide is written for AI coding agents (Claude Code, Codex CLI, Gemini CLI, OpenCode, Cursor, etc.) when a user asks you to **set up Kintoun on their decompilation repository**, **match or name functions**, or **extend Kintoun itself**.
 
@@ -65,9 +65,10 @@ kintoun context --func <FuncNameOr0xAddr>
 
 ## 2. Installing Kintoun's Built-In Agent Skills (`skills/`)
 
-Kintoun ships two portable skill folders under `skills/`:
+Kintoun ships three portable skill folders under `skills/`:
 1. **`skills/kintoun-match/`** - Byte-exact C matching workflow plus PowerPC (`powerpc.md`), MIPS (`mips.md`), and ARM/Thumb (`arm.md`) assembly-diff-to-C lookup tables.
 2. **`skills/CLI-OVERSEER/`** - Project orchestrator skill enabling standard CLI coding models to delegate parallel **Matcher** and **Namer** subagents over Kintoun's queue and governor (standalone or alongside `kintoun overseer`).
+3. **`skills/ENGINE-BUILDER/`** - Self-learning side-tree engine evolution skill enabling 1 to 4 **Engine Builder** subagents to iterate rapidly in `.kintoun/engine_lab/` and promote a new project-local engine only when it beats `live` on a wide, blind unseen function gate (both `%` close to matched and exact matches, zero regressions).
 
 Copy or symlink them into whichever agent skill directory the user's CLI reads:
 ```bash
@@ -77,10 +78,10 @@ mkdir -p .codex/skills  && cp -r /path/to/kintoun/skills/* .codex/skills/
 mkdir -p .gemini/skills && cp -r /path/to/kintoun/skills/* .gemini/skills/
 ```
 
-If the user's client supports MCP, register `kintoun mcp` (run from the decomp repo root, or `kintoun -c /path/to/kintoun.toml mcp`) to expose all **23 MCP tools**:
+If the user's client supports MCP, register `kintoun mcp` (run from the decomp repo root, or `kintoun -c /path/to/kintoun.toml mcp`) to expose all **25 MCP tools**:
 - **Inspection, Import, Headers & Atlas:** `kintoun_info`, `kintoun_doctor`, `kintoun_check`, `kintoun_context_pack`, `kintoun_probe_flags`, `kintoun_scratch`, `kintoun_import_function`, `kintoun_integrate_match`, `kintoun_synth_headers`, `kintoun_atlas`, `kintoun_export_dataset`
 - **Scoring, Search & Cleanup:** `kintoun_verify`, `kintoun_score_candidate`, `kintoun_revise_candidate`, `kintoun_score_candidates`, `kintoun_permute`, `kintoun_close_near_miss`, `kintoun_clean_match`
-- **Multi-Agent Queue & Clock:** `kintoun_claim_next`, `kintoun_clock`, `kintoun_submit_match`, `kintoun_fail_claim`, `kintoun_queue_status`
+- **Multi-Agent Queue, Clock & Engine Lab:** `kintoun_claim_next`, `kintoun_clock`, `kintoun_submit_match`, `kintoun_fail_claim`, `kintoun_queue_status`, `kintoun_engine_status`, `kintoun_engine_gate`
 
 ---
 
@@ -114,8 +115,8 @@ If the user's client supports MCP, register `kintoun mcp` (run from the decomp r
 - `src/kintoun/candidates.py` - `cand_<12hex>` candidate store, negative compile-error cache, `revise`, and `score_batch`.
 - `src/kintoun/inspect_fn.py`, `xref.py`, `constants.py`, `compiler_id.py`, `similarity.py` & `closer.py` - Blocker & wrong-compiler `check`, static + logistic-calibrated difficulty scorer, `context_pack` (with TF-IDF opcode-bigram similar matched C functions, incoming callers/vtables, struct-offset consensus, inlined-helper detection, bit-exact `.rodata` floats, and magic-division inversion), and 7-class zero-AI near-miss closer.
 - `src/kintoun/macros.py`, `project_io.py`, `autoconfig.py`, `cleaner.py`, `watch.py`, `synth.py`, `doctor.py`, `dataset.py`, `atlas.py`, `prober.py` & `scratch.py` - Pure-stdlib `KINTOUN_*` permutation macros (with `PERM_*` aliases) + beam-search hybrid, zero-config `objdiff.json`/`dtk`/`splat.yaml` ingestion, byte-verified post-match de-`goto` cleaner (`clean`), live file-save `watch`, factual binary struct/vtable/assert header synthesizer (`synth-headers`), environment `doctor`, verifiable SFT/DPO dataset exporter (`export-dataset`), `INCLUDE_ASM`/`GLOBAL_ASM` `import` & verified `integrate`, single-file HTML Decomp Atlas (`atlas`), `probe-flags`, and `decomp.me` `scratch`.
-- `src/kintoun/queue.py`, `overseer.py`, `lab.py` - SQLite WAL chess-clock work queue, `none`/`single`/`dual`-brain Overseer, and benchmark/prior runner.
-- `skills/` & `docs/` - Portable `CLI-OVERSEER` and `kintoun-match` skills plus user documentation.
+- `src/kintoun/queue.py`, `overseer.py`, `lab.py`, `engine_lab.py` - SQLite WAL chess-clock work queue, `none`/`single`/`dual`-brain Overseer, benchmark/prior runner, and side-tree self-learning Engine Lab (`kintoun engine`) with blind unseen promotion gating, commit ablation, and 1-command rollback.
+- `skills/` & `docs/` - Portable `CLI-OVERSEER`, `ENGINE-BUILDER`, and `kintoun-match` skills plus user documentation.
 
 ### Version Bump Checklist
 Whenever shipping a new Kintoun version:
