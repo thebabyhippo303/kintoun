@@ -104,6 +104,16 @@ An optional MCP server exposes 25 Kintoun tools (`verify`, `permute`, `info`, `d
 pip install -e ".[mcp]"
 kintoun mcp
 ```
+BENCHMARK ANY AI AGENT WITH KINTOUN
+• A new agent benchmark command (see docs/BENCHMARKS.md) picks a balanced set of plain C functions from a binary (60 by default: five size tiers from 24 to 960 bytes and six kinds of function, from simple integer code to loops, floating point, call chains and C++ virtual calls).
+• Each function is handed to a command line agent (presets for agy, Claude and Codex, or your own command) in a fresh, empty workspace with only the target, anonymous symbols, the Kintoun skill and the starting C. No history, no other functions, no game details.
+• Two ways to run it: one agent for the whole set on one shared clock, deciding for itself how to split its time, or a fresh agent per function with its own time limit. If time runs out mid edit, the best valid C found so far is kept. Every result is checked again outside the agent's workspace, and a report table is written at the end.
+
+TESTED ON A GAME KINTOUN HAD NEVER SEEN
+• 60 functions from a commercial PS2 game outside the 15 game development set, built with Metrowerks for PS2, the setup where Kintoun scored lowest before. Every function starts from raw m2c output, which never compiles as is.
+• Kintoun on its own, 30 seconds per function with no AI: 38 of 60 compile, 9 match exactly, and the average function ends 47.1% aligned, with 22 at 80% or better.
+• One Gemini agent with Kintoun and 30 minutes for all 60 functions together: all 60 compile, 13 match exactly, and the average function ends 83.5% aligned (88.6% median), with 46 at 80% or better. Floating point functions went from 19% to 90% on average, and C++ virtual calls from 25% to 73%.
+• Full tables by size and kind are in docs/BENCHMARKS.md.
 
 ## License
 
