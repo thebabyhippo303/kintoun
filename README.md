@@ -8,7 +8,7 @@ Kintoun is like a sister of [TNRP](https://nimbusrecomp.org), and sometimes they
 
 ## Benchmark: 60 functions from a PS2 game Kintoun had never seen
 
-60 functions from a commercial PS2 game outside the 15 game development set, built with Metrowerks for PS2. Every function starts from raw `m2c` output, which never compiles as is. Each agent got all 60 in one fresh, empty workspace with a single 30 minute clock for the whole set, the same brief and no earlier attempts. Every result was verified again outside the agent's workspace.
+60 functions from a commercial PS2 game outside the 15 game development set, built with Metrowerks for PS2. Every function starts from raw `m2c` output, which never compiles as is. Each agent got all 60 in one fresh, empty workspace with a single 30 minute clock for the whole set, the same brief and no earlier attempts. Every result was verified again outside the agent's workspace. Every run used Kintoun v0.8.0.
 
 | Stage | Functions | Compiles | Exact (`VERIFIED`) | Exact % | Mean aligned | Median aligned | 80% or better | 95% or better |
 |---|---|---|---|---|---|---|---|---|
