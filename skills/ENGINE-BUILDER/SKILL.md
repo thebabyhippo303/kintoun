@@ -11,7 +11,7 @@ description: Iterative side-tree engine evolution skill for personal decompilati
 
 ## 1. Core Architecture & Anti-Overfitting Law
 
-All engine evolution lives inside `.kintoun/engine_lab/` (never touching `src/`, `symbols.txt`, or `.kintoun/queue.sqlite3` claims):
+A promoted engine only runs on the machine that promoted it (a per-user trust record outside the repo); an engine committed into a repository is never run by someone who clones it. All engine evolution lives inside `.kintoun/engine_lab/` (never touching `src/`, `symbols.txt`, or `.kintoun/queue.sqlite3` claims):
 
 1. **`live/` (Current Project Engine):** Seeded from Kintoun's `src/kintoun/`. When promoted, `active_engine.json` routes future `permute`, `close`, `overseer`, and `mcp` runs in this repo through `live/src` automatically.
 2. **`builders/b1` .. `builders/b4` (Isolated Side Trees):** Each `ENGINE-BUILDER` subagent edits **only** its assigned side tree (`builders/b1/src/kintoun/...`).

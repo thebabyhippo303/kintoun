@@ -250,3 +250,35 @@ class V070EngineBuilderTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UntrustedOverlayTests(unittest.TestCase):
+    def test_engine_shipped_inside_a_repo_is_ignored_until_promoted_here(self) -> None:
+        import contextlib, io, os
+        from kintoun.engine_lab import record_trusted_engine
+
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as cfg_home:
+            old = os.environ.get("XDG_CONFIG_HOME")
+            os.environ["XDG_CONFIG_HOME"] = cfg_home
+            try:
+                root = Path(tmp)
+                live_pkg = root / ".kintoun" / "engine_lab" / "live" / "src" / "kintoun"
+                live_pkg.mkdir(parents=True)
+                (live_pkg / "__init__.py").write_text('__version__ = "repo"\n', encoding="utf-8")
+                (root / ".kintoun" / "engine_lab" / "active_engine.json").write_text('{"enabled": true}\n', encoding="utf-8")
+                err = io.StringIO()
+                with contextlib.redirect_stderr(err):
+                    self.assertIsNone(active_overlay_src_dir(root))
+                self.assertIn("not promoted on this machine", err.getvalue())
+
+                record_trusted_engine(live_pkg.parent)
+                self.assertEqual(active_overlay_src_dir(root), live_pkg.parent)
+
+                (live_pkg / "__init__.py").write_text('__version__ = "changed"\n', encoding="utf-8")
+                with contextlib.redirect_stderr(io.StringIO()):
+                    self.assertIsNone(active_overlay_src_dir(root))
+            finally:
+                if old is None:
+                    os.environ.pop("XDG_CONFIG_HOME", None)
+                else:
+                    os.environ["XDG_CONFIG_HOME"] = old

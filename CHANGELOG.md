@@ -11,6 +11,8 @@ Kintoun has been trained through research and development on TNRP's 15 game code
 * **Automatic project overlay and 1 command rollback (`active_engine.json`, `kintoun engine rollback`):** Promoted engines activate automatically for subsequent `permute`, `close`, `overseer` and `mcp` runs in that repository while saving full backups and `PROMOTION_MANIFEST.json` for instant 1 command rollback.
 * **Portable `ENGINE-BUILDER` skill pack (`skills/ENGINE-BUILDER/`):** Adds `SKILL.md` and `references/builder-briefs.md` for solo or 4 lane parallel `ENGINE-BUILDER` subagents paired with `CLI-OVERSEER`.
 
+* **Safety:** a project-local engine only runs when it was promoted or restored on this machine and is unchanged since (a per-user trust record in `~/.config/kintoun/trusted_engines.json`). An engine that arrives inside a cloned repository is ignored, with a notice, until you promote one yourself.
+
 ## 0.6.0
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase.

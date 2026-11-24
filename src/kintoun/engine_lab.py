@@ -126,8 +126,48 @@ def installed_kintoun_pkg_dir() -> Path:
     return Path(_root_pkg.__file__).resolve().parent
 
 
+def _trust_store_path() -> Path:
+    """Per-user record of engines promoted on this machine (outside any project, so a repo cannot vouch for itself)."""
+    base = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
+    return Path(base) / "kintoun" / "trusted_engines.json"
+
+
+def _full_tree_digest(src_root: Path) -> str:
+    pkg = src_root / "kintoun" if (src_root / "kintoun").is_dir() else src_root
+    h = hashlib.sha256()
+    for p in sorted(pkg.rglob("*.py")):
+        if "__pycache__" in p.parts:
+            continue
+        h.update(p.relative_to(pkg).as_posix().encode("utf-8"))
+        h.update(b"\0")
+        h.update(p.read_bytes())
+    return h.hexdigest()
+
+
+def record_trusted_engine(live_src: Path) -> None:
+    """Remember that this user promoted (or restored) the engine now in `live_src`."""
+    store = _trust_store_path()
+    trusted = _read_json(store, {})
+    if not isinstance(trusted, dict):
+        trusted = {}
+    trusted[str(Path(live_src).resolve())] = _full_tree_digest(live_src)
+    store.parent.mkdir(parents=True, exist_ok=True)
+    _atomic_json_write(store, trusted)
+
+
+def is_trusted_engine(live_src: Path) -> bool:
+    trusted = _read_json(_trust_store_path(), {})
+    want = trusted.get(str(Path(live_src).resolve())) if isinstance(trusted, dict) else None
+    return bool(want) and want == _full_tree_digest(live_src)
+
+
 def active_overlay_src_dir(project_root: Path) -> Path | None:
-    """Return `.kintoun/engine_lab/live/src` if a promoted project-local engine is active."""
+    """Return `.kintoun/engine_lab/live/src` if a promoted project-local engine is active.
+
+    The engine is only used when it was promoted or restored by `kintoun engine` on this machine
+    and has not changed since: its digest must match the per-user trust record. An engine that
+    arrived with a cloned repository is ignored (with a notice) until the user promotes it.
+    """
     if os.environ.get("KINTOUN_DISABLE_LOCAL_ENGINE") == "1":
         return None
     meta_p = Path(project_root) / ".kintoun" / "engine_lab" / "active_engine.json"
@@ -135,9 +175,16 @@ def active_overlay_src_dir(project_root: Path) -> Path | None:
     if not meta.get("enabled"):
         return None
     live_src = Path(project_root) / ".kintoun" / "engine_lab" / "live" / "src"
-    if (live_src / "kintoun" / "__init__.py").is_file():
-        return live_src
-    return None
+    if not (live_src / "kintoun" / "__init__.py").is_file():
+        return None
+    if not is_trusted_engine(live_src):
+        print(
+            f"kintoun: ignoring the project-local engine in {live_src} because it was not promoted on this "
+            "machine (or changed since). Using installed Kintoun. Run `kintoun engine gate` to promote one.",
+            file=sys.stderr,
+        )
+        return None
+    return live_src
 
 
 def synthesize_baseline_seed(target_fn: TargetFunction, ctx: TargetContext) -> str:
@@ -1064,6 +1111,7 @@ class EngineLab:
                     "backup_dir": str(bdir),
                 },
             )
+            record_trusted_engine(self.live_dir / "src")
             st = _read_json(self.state_json, {"bases": {}, "events": [], "promotions": 0})
             st["promotions"] = int(st.get("promotions", 0)) + 1
             st.setdefault("events", []).insert(0, f"{_utc_stamp()} PROMOTED {label} -> live (backup {bdir.name})")
@@ -1130,6 +1178,7 @@ class EngineLab:
                     "restored_from": str(bdir),
                 },
             )
+            record_trusted_engine(self.live_dir / "src")
             st = _read_json(self.state_json, {"bases": {}, "events": []})
             st.setdefault("events", []).insert(0, f"{_utc_stamp()} ROLLED BACK live from {bdir.name}")
             _atomic_json_write(self.state_json, st)
