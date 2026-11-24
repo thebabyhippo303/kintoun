@@ -113,6 +113,17 @@ TESTED ON A GAME KINTOUN HAD NEVER SEEN
 • 60 functions from a commercial PS2 game outside the 15 game development set, built with Metrowerks for PS2, the setup where Kintoun scored lowest before. Every function starts from raw m2c output, which never compiles as is.
 • Kintoun on its own, 30 seconds per function with no AI: 38 of 60 compile, 9 match exactly, and the average function ends 47.1% aligned, with 22 at 80% or better.
 • One Gemini agent with Kintoun and 30 minutes for all 60 functions together: all 60 compile, 13 match exactly, and the average function ends 83.5% aligned (88.6% median), with 46 at 80% or better. Floating point functions went from 19% to 90% on average, and C++ virtual calls from 25% to 73%.
+• One Claude Opus 5.5 agent with Kintoun under the same conditions: all 60 compile, 12 match exactly, and the average function ends 79.3% aligned (87.6% median), with 41 at 80% or better. Its session ended at 27.8 of the 30 minutes on a usage limit.
+
+| Stage | Functions | Compiles | Exact | Mean aligned | Median aligned | 80% or better | 95% or better |
+|---|---|---|---|---|---|---|---|
+| Raw m2c seed | 60 | 0 | 0 | 0.0% | 0.0% | 0 | 0 |
+| Kintoun alone, 30s per function | 60 | 38 | 9 | 47.1% | 49.3% | 22 | 9 |
+| **Gemini 4 Neon + Kintoun, 30 min whole set** | 60 | **60** | **13** | **83.5%** | **88.6%** | **46** | **20** |
+| **Claude Opus 5.5 + Kintoun, 30 min whole set\*** | 60 | **60** | **12** | **79.3%** | **87.6%** | **41** | **18** |
+
+\* Session ended at 27.8 of the 30 minutes when the service's usage limit was reached.
+
 • Full tables by size and kind are in docs/BENCHMARKS.md.
 
 ## License
