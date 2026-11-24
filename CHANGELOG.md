@@ -6,6 +6,7 @@
 * **One overseer agent leads worker agents on one clock (`overseer_bench.py`):** the overseer gets a multi game function set in one workspace with `spawn-worker`, `worker-status`, `worker-log` and `stop-worker`; it decides how many workers to start and what each one does. Workers are started by a broker in the harness (each through its own command template), everyone stops when the clock runs out, and every function is verified again outside the workspace. A spawn is refused while the machine is low on free memory.
 * **Generic templates (`templates/overseer/`):** the overseer brief, the worker brief and an example run file; every overseer test fills in the same briefs from its run file (models, effort, commands, clock, worker limit).
 * **First result:** 500 functions from 16 games, Gemini 4 Neon overseer with Gemini 4 Hydrogen workers, 30 minutes: all 500 compile, 198 match exactly, 69.1% mean alignment (84.4% median); headless alone: 358 compile, 44 exact, 39.2%.
+* **Second result:** the same 500 functions, Muse Wonder Full 1.0 overseer with Muse Spark 1.3 workers: all 500 compile, 73 match exactly, 51.5% mean alignment (50.0% median); it ran one worker per game for the whole clock, where the Gemini team started 57 workers.
 
 ## 0.8.0
 

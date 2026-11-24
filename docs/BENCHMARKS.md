@@ -140,38 +140,44 @@ All agents compile every function (22 did not with headless search alone). Exact
 
 500 functions from 16 commercial console games (PS2, PSP, GameCube and GBA), about 31 from each, built with eight compilers across GCC, SN Systems, Metrowerks and agbcc. None of them is in the 60 function benchmark or matched in any of our decompilation projects. Every function starts from raw `m2c` output.
 
-One overseer agent (Gemini 4 Neon, high) gets all 500 in one fresh, empty workspace and a single 30 minute clock for the whole team. It starts as many worker agents (Gemini 4 Hydrogen, high) as it sees fit, writes each one its own brief, follows their progress and moves work around; every worker stops when the clock runs out. Neither side can see earlier attempts. Every result was verified again outside the workspace.
+One overseer agent gets all 500 in one fresh, empty workspace and a single 30 minute clock for the whole team. It starts as many worker agents as it sees fit, writes each one its own brief, follows their progress and moves work around; every worker stops when the clock runs out. Every team gets the same generic briefs, filled in from its run file. Neither side can see earlier attempts. Every result was verified again outside the workspace.
 
 | Stage | Functions | Compiles | Exact (`VERIFIED`) | Exact % | Mean aligned | Median aligned | 80% or better | 95% or better |
 |---|---|---|---|---|---|---|---|---|
 | Raw `m2c` seed | 500 | 0 | 0 | 0.0% | 0.0% | 0.0% | 0 | 0 |
 | Headless `kintoun permute` (30s per function) | 500 | 358 | 44 | 8.8% | 39.2% | 33.3% | 101 | 50 |
 | **Gemini 4 Neon (high) overseer + Gemini 4 Hydrogen (high) workers + Kintoun, 30 min** | **500** | **500** | **198** | **39.6%** | **69.1%** | **84.4%** | **261** | **209** |
+| **Muse Wonder Full 1.0 (high) overseer + Muse Spark 1.3 (high) workers + Kintoun, 30 min** | **500** | **500** | **73** | **14.6%** | **51.5%** | **50.0%** | **132** | **77** |
 
-Neon triaged all 500 with Kintoun first, then started 57 Hydrogen workers over the 30 minutes, 32 at most at once: two per game at first, then smaller targeted rounds.
+How each overseer ran its team:
+
+| Overseer | Workers | Workers started | Most at once | Worker minutes | Workers it stopped | How it split the work |
+|---|---|---|---|---|---|---|
+| Gemini 4 Neon (high) | Gemini 4 Hydrogen (high) | 57 | 32 | 732 | 15 | a Kintoun triage of all 500 first, then two workers per game, then smaller rounds aimed at near misses |
+| Muse Wonder Full 1.0 (high) | Muse Spark 1.3 (high) | 16 | 16 | 428 | 0 | one worker per game for the whole clock |
 
 ### By size tier
 
-| Size tier | Functions | Headless exact | Headless mean | Team exact | Team mean | Team median |
-|---|---|---|---|---|---|---|
-| `tiny_24_64B` | 76 | 28 | 65.8% | 57 | 87.7% | 100.0% |
-| `small_68_136B` | 89 | 8 | 50.9% | 49 | 79.5% | 100.0% |
-| `medium_140_260B` | 114 | 7 | 40.7% | 47 | 73.5% | 90.0% |
-| `large_264_480B` | 113 | 1 | 31.0% | 31 | 67.2% | 77.3% |
-| `xlarge_484_960B` | 108 | 0 | 18.0% | 14 | 44.7% | 38.1% |
+| Size tier | Functions | Headless exact | Headless mean | Gemini 4 Neon team exact | Gemini 4 Neon team mean | Muse Wonder Full 1.0 team exact | Muse Wonder Full 1.0 team mean |
+|---|---|---|---|---|---|---|---|
+| `tiny_24_64B` | 76 | 28 | 65.8% | 57 | 87.7% | 37 | 75.0% |
+| `small_68_136B` | 89 | 8 | 50.9% | 49 | 79.5% | 17 | 63.7% |
+| `medium_140_260B` | 114 | 7 | 40.7% | 47 | 73.5% | 15 | 54.7% |
+| `large_264_480B` | 113 | 1 | 31.0% | 31 | 67.2% | 3 | 43.1% |
+| `xlarge_484_960B` | 108 | 0 | 18.0% | 14 | 44.7% | 1 | 30.4% |
 
 ### By kind of function
 
-| Family | Functions | Headless exact | Headless mean | Team exact | Team mean | Team median |
-|---|---|---|---|---|---|---|
-| `leaf_int` | 53 | 11 | 49.8% | 32 | 74.7% | 100.0% |
-| `branch_guard` | 100 | 21 | 44.3% | 54 | 71.7% | 100.0% |
-| `loop` | 79 | 0 | 28.3% | 19 | 64.2% | 73.8% |
-| `float_fpu` | 76 | 1 | 25.3% | 15 | 55.8% | 64.2% |
-| `call_chain` | 68 | 7 | 43.8% | 27 | 73.7% | 79.5% |
-| `vtable_dispatch` | 124 | 4 | 43.6% | 51 | 73.3% | 89.1% |
+| Family | Functions | Headless exact | Headless mean | Gemini 4 Neon team exact | Gemini 4 Neon team mean | Muse Wonder Full 1.0 team exact | Muse Wonder Full 1.0 team mean |
+|---|---|---|---|---|---|---|---|
+| `leaf_int` | 53 | 11 | 49.8% | 32 | 74.7% | 14 | 53.7% |
+| `branch_guard` | 100 | 21 | 44.3% | 54 | 71.7% | 27 | 56.0% |
+| `loop` | 79 | 0 | 28.3% | 19 | 64.2% | 3 | 45.9% |
+| `float_fpu` | 76 | 1 | 25.3% | 15 | 55.8% | 4 | 36.8% |
+| `call_chain` | 68 | 7 | 43.8% | 27 | 73.7% | 13 | 57.7% |
+| `vtable_dispatch` | 124 | 4 | 43.6% | 51 | 73.3% | 12 | 56.2% |
 
-The team compiles all 500 (142 did not with headless search alone) and matches 198 exactly, against 44 for headless search.
+Every team compiles all 500 (142 did not with headless search alone).
 
 ## Reproducing
 
