@@ -4,15 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kintoun"
-version = "0.1.0"
-description = "Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF verifier."
+version = "0.2.0"
+description = "Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF32 verifier for PowerPC, MIPS, and ARM."
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}
 requires-python = ">=3.11"
 authors = [
     {name = "TheBabyHippo303"},
 ]
-keywords = ["decompilation", "permuter", "matching-c", "powerpc", "gamecube", "reverse-engineering"]
+keywords = ["decompilation", "permuter", "matching-c", "powerpc", "mips", "arm", "gamecube", "ps2", "psp", "gba", "nds", "reverse-engineering"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

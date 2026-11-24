@@ -1,15 +1,17 @@
 # Kintoun
 
-**Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict PowerPC ELF32 verifier.**
+**Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF32 verifier for PowerPC, MIPS, and ARM.**
 
-Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)) and now open-sourced for any decompilation project.
+Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)) and expanded in **0.2.0** with dedicated first-class **MIPS** (PS2 Emotion Engine, PSP Allegrex, MIPS32 LE/BE) and **ARM / Thumb** (ARMv4T/ARMv5TE GBA and Nintendo DS, A32, Thumb-1, and Thumb-2 mixed width) engines.
 
 ## What makes Kintoun different
-* **Real C only:** Rejects inline assembly, `GLOBAL_ASM`, naked functions, and raw `.long`/`.4byte` directives.
-* **Strict relocation-exact verification:** Parses ELF32 relocations directly (`REL24`, `REL14`, `ADDR16_HA`/`LO`, `EMB_SDA21`, `SDAREL16`) and compares relocated machine-code bytes 1:1 against the target binary.
-* **Score-guided real-C mutations + live-range register permuter:** Combines 30+ compiler-codegen mutation families (declaration order, variable splitting, temp merging, branch polarity, loop shapes, type/cast flips, load splitting, evaluation order) with instruction-backed repair hypotheses (`callee`, `global`, `literal`, `field_offset`, `frame`, `block_layout`).
-* **Compiler-agnostic:** Works with SN ProDG (under Wine), Metrowerks CodeWarrior / MWCC (under Wine), `powerpc-eabi-gcc`, or any custom command template via `kintoun.toml`.
-* **Local SQLite cache & parallel workers:** Zero external daemon, zero fleet/server setup — runs locally on any contributor's machine.
+* **Real C only:** Rejects inline assembly, `GLOBAL_ASM`, naked functions, and raw `.long`/`.4byte`/`.word` directives.
+* **Dedicated per-architecture relocation-exact verification (no shallow generic layer):**
+  * **PowerPC (`ppc_elf`):** Strict ELF32 big-endian verifier (`REL24`, `REL14`, `ADDR16_HA`/`LO`, `EMB_SDA21`, `SDAREL16`, DOL + `symbols.txt` and standalone `.o` linking), `m2c` C89 seed repair + `r13`/`r2` SDA & raw `lis+addi` DOL address rebasing (`ppc_seeds`), and all 52 target-instruction-directed Sagas mutations (`mutations.directed`).
+  * **MIPS (`mips_elf`):** Both `SHT_REL` and `SHT_RELA`, little- and big-endian, paired/multi-`HI16` + orphaned-`LO16` (including `_gp_disp`), `GPREL16`/`GPREL32` + `.reginfo`/`.MIPS.options`/`SceModuleInfo` `$gp` extraction, PSP `ET_SCE_PSP_PRX` (`0xFFA0`) auto-relocation, `26`, `PC16`, `LITERAL`, delay-slot-aware alignment, stdlib disassembler (MIPS I-IV, R5900 EE `lq`/`sq`, Allegrex, COP1), register-class live-range permuter (`$v`, `$a`, `$t`, `$s`, `$f`, `HI`/`LO`), target-instruction-guided mutations (`mips_mutations`), `m2c` seed repairs (`mips_seeds`), and MIPS repair hypotheses.
+  * **ARM / Thumb (`arm_elf`):** `$a`/`$t`/`$d` mapping-symbol segmentation, A32 + Thumb-16 + Thumb-2 mixed-width scoring and stdlib disassembly, `SHT_REL` and `SHT_RELA` (`ABS32`, `REL32`, `PC24`, `CALL`, `JUMP24`, `THM_CALL`, `THM_JUMP*`, `MOVW`/`MOVT`, `THM_PC8`/`PC12`), relocation-aware inline literal-pool comparison, Thumb low-register (`r0-r7`) permuter, `$d` literal-pool struct-base rebasing (`arm_seeds`), target-guided ARM/Thumb mutations (`arm_mutations`), and interworking (`BL` vs `BLX`) / Thumb-width repair hypotheses.
+* **Compiler-agnostic presets:** Works with SN ProDG (`prodg-wine`, `pspsnc`), Metrowerks MWCC (GameCube/Wii `mwcc-wine`, PS2 `mwccps2`, PSP `mwccpsp`, and DS `mwccarm`), `ee-gcc` (PS2), `psp-gcc` (PSP), `mips-gcc`, `agbcc` (GBA, with integrated `cpp` preprocessing), `arm-none-eabi-gcc`, `armcc`, or any custom command template in `kintoun.toml` (supports both Wine and `wibo`).
+* **Local SQLite cache & parallel workers:** Zero external daemon or server setup; runs locally on Python 3.11+ standard library.
 
 ## Quickstart
 
@@ -18,16 +20,21 @@ Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search
 pip install -e .
 
 # Create a starter kintoun.toml in your decomp repo
-kintoun init --preset prodg-wine   # or: mwcc-wine, custom
+# Presets: prodg-wine, mwcc-wine, ee-gcc, mwccps2, psp-gcc, mwccpsp, pspsnc, mips-gcc, agbcc, arm-none-eabi-gcc, mwccarm, armcc, custom
+kintoun init --preset prodg-wine
 
-# Verify a single C file against a target function from your DOL + symbols.txt
+# Verify a single C file against a target function from your binary/DOL + symbols.txt
 kintoun verify src/MyClass/MyFunc.c --func MyClass__MyFunc
 
-# Or verify against a standalone target .o file (e.g. from decomp.me)
+# Or verify against a standalone target .o file (PowerPC, MIPS, or ARM/Thumb auto-detected)
 kintoun verify candidate.c --target target.o
 
-# Run parallel real-C permutation search (writes back on exact match with --write)
-kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
+# Run parallel real-C permutation search (default 3m / 2500 tries; writes back on exact match with --write)
+kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --write
+
+# Search duration & depth presets / flags:
+#   --quick (15s/250), --thorough (10m/10k), --deep (30m/50k), --until-match, or --time 5m --workers 8
+kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --thorough --workers 8 --write
 ```
 
 ## Plugging into `dbzsagas-decomp`
@@ -41,11 +48,11 @@ kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
 ```
 
 ## Documentation
-* [docs/CONFIG.md](docs/CONFIG.md) — `kintoun.toml` schema and options
-* [docs/COMPILERS.md](docs/COMPILERS.md) — Setting up SN ProDG, MWCC, and custom compilers
+* [docs/CONFIG.md](docs/CONFIG.md) - `kintoun.toml` schema and per-architecture options
+* [docs/COMPILERS.md](docs/COMPILERS.md) - Setting up ProDG, MWCC, `ee-gcc`, `psp-gcc`, `mips-gcc`, `agbcc`, `arm-none-eabi-gcc`, and `mwccarm`
 
 ## MCP server
-An optional MCP server exposes Kintoun's verify, permute, and info commands as MCP tools. Install the optional extra, then start the server:
+An optional MCP server exposes Kintoun's `verify`, `permute`, and `info` commands as MCP tools. Install the optional extra, then start the server:
 
 ```bash
 pip install -e ".[mcp]"
@@ -53,6 +60,9 @@ kintoun mcp
 ```
 
 ## License
-Kintoun itself is licensed under the **GNU General Public License v3.0 or later (GPL-3.0-or-later)** — see [LICENSE](LICENSE). No copyrighted game assets, ROMs, or proprietary compilers are included.
 
-The output exception is in [LICENSE](LICENSE) as an additional permission under GNU GPL version 3 section 7.
+Kintoun's own source code is licensed under the **GNU General Public License v3.0 or later (`GPL-3.0-or-later`)**. No copyrighted game assets, ROMs, or proprietary compilers are included in this repository.
+
+**Plain-language Output Exception:** Running Kintoun on your C files does **not** infect your decompilation project with the GPL. Under the **Kintoun Output Exception** (an additional permission under GNU GPLv3 Section 7), any C source files, mutated/permuted candidates, decompilations, or build outputs you create, modify, or verify using Kintoun are **not** derivative works of Kintoun and are **not** covered by the GPL. You may license your project's C code under any terms you choose, including CC0, public domain, MIT, BSD, or proprietary terms.
+
+Only modifications or redistributions of Kintoun's own tool code remain under `GPL-3.0-or-later`. See [LICENSE](LICENSE) for the full GPLv3 text and the exact Kintoun Output Exception wording.

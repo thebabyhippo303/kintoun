@@ -6,7 +6,7 @@ from pathlib import Path
 
 from kintoun import __version__
 from kintoun.compiler import make_compiler
-from kintoun.config import load_config
+from kintoun.config import SEARCH_MODES, load_config, parse_duration_s
 from kintoun.search.runner import run_search
 from kintoun.targets import load_target_from_config, load_target_from_object
 from kintoun.verify import verify_source
@@ -45,8 +45,10 @@ def run_mcp(config_path: Path | None = None) -> None:
         source_path: str,
         func: str = "",
         target_obj: str = "",
-        budget_s: float = 60.0,
-        max_candidates: int = 400,
+        budget_s: float | str = 180.0,
+        max_candidates: int = 2500,
+        mode: str = "",
+        plateau: int = 0,
     ) -> str:
         """Run Kintoun real-C mutation and register-permutation search against a target function."""
         ctx, tf = (
@@ -55,18 +57,25 @@ def run_mcp(config_path: Path | None = None) -> None:
             else (load_target_from_config(cfg), load_target_from_config(cfg).resolve_function(func))
         )
         compiler = make_compiler(cfg)
+        mkey = mode.strip().lower()
+        if mkey in SEARCH_MODES:
+            eff_budget, eff_cands = SEARCH_MODES[mkey]
+        else:
+            eff_budget = parse_duration_s(budget_s, cfg.search.budget_s)
+            eff_cands = max_candidates
         res = run_search(
             source=Path(source_path).read_text(encoding="utf-8"),
             target_fn=tf,
             ctx=ctx,
             compiler=compiler,
-            budget_s=budget_s,
-            max_candidates=max_candidates,
+            budget_s=eff_budget,
+            max_candidates=eff_cands,
             strategies=cfg.search.strategies,
             workers=cfg.search.workers,
             cache_dir=cfg.resolve_path(cfg.search.cache_dir),
             priors_path=cfg.resolve_path(cfg.search.priors_file),
             forbid_asm=cfg.search.forbid_asm,
+            plateau=plateau,
         )
         return json.dumps(res, indent=2)
 

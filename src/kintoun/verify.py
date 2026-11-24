@@ -42,8 +42,35 @@ def verify_source(
     forbid_asm: bool = True,
     partial_link: bool = False,
     placement_cache: dict[Any, Any] | None = None,
+    _include_words: bool = False,
 ) -> dict[str, Any]:
     """Compile C source, relocate against target, and return strict byte-match & score report."""
+    if ctx.arch in ("mips", "mips_elf"):
+        from kintoun.verify_mips import verify_mips_source
+
+        return verify_mips_source(
+            source_text,
+            target_fn,
+            ctx,
+            compiler,
+            lines=lines,
+            forbid_asm=forbid_asm,
+            partial_link=partial_link,
+            placement_cache=placement_cache,
+        )
+    if ctx.arch in ("arm", "arm_elf"):
+        from kintoun.verify_arm import verify_arm_source
+
+        return verify_arm_source(
+            source_text,
+            target_fn,
+            ctx,
+            compiler,
+            lines=lines,
+            forbid_asm=forbid_asm,
+            partial_link=partial_link,
+            placement_cache=placement_cache,
+        )
     lines = max(0, min(int(lines), 100))
     if target_fn.size <= 0 or target_fn.size % 4:
         raise ValueError("target function must have a nonempty, 4-byte-aligned extent")
@@ -125,6 +152,24 @@ def verify_source(
         "diff": sc.diff(lines) if lines else "",
     }
 
+    # Auto-bind hex-addressed decomp externs (`lbl_80XXXXXX`, `fn_80XXXXXX`, `D_80XXXXXX`) not yet in `symbols.txt`
+    ext_map = ctx.external
+    by_addr = ctx.by_addr
+    objs = ctx.objs
+    hex_syms = set(re.findall(r"\b((?:lbl|fn|func|D)_[0-9A-Fa-f]{8})\b", source_text))
+    missing_hex = [s for s in hex_syms if s not in ext_map]
+    if missing_hex:
+        ext_map = dict(ctx.external)
+        by_addr = dict(ctx.by_addr)
+        objs = dict(ctx.objs)
+        for sname in missing_hex:
+            addr = int(sname.split("_", 1)[1], 16)
+            ext_map[sname] = addr
+            if sname.startswith(("fn_", "func_")):
+                by_addr.setdefault(addr, sname)
+            else:
+                objs.setdefault(addr, (sname, 4))
+
     evidence: dict[str, Any] = {}
     try:
         linked, evidence, _unknown = link_function(
@@ -132,9 +177,9 @@ def verify_source(
             function=fn_sym,
             va=target_fn.va,
             target_bytes=target_fn.data,
-            external=ctx.external,
-            function_addresses=ctx.by_addr,
-            object_addresses=ctx.objs,
+            external=ext_map,
+            function_addresses=by_addr,
+            object_addresses=objs,
             data_segments=ctx.data_segments,
             read_mem=ctx.read,
             sda_r13=ctx.sda_r13,
@@ -145,14 +190,18 @@ def verify_source(
         )
         cmp_res = compare_bytes(linked, target_fn.data)
         result.update(cmp_res)
+        linked_words = score_mod.words_be(linked)
+        if _include_words:
+            result["_ours_words"] = linked_words
+            result["_ops"] = getattr(sc, "ops", None)
         if not result["verified"]:
             all_repairs = repair_mod.hypotheses(
-                score_mod.words_be(linked),
+                linked_words,
                 target_words,
                 source_text,
                 target_fn.va,
-                ctx.by_addr,
-                ctx.objs,
+                by_addr,
+                objs,
                 ctx.sda_r13,
                 ctx.sda_r2,
                 getattr(sc, "ops", None),
@@ -163,6 +212,9 @@ def verify_source(
             result["repairs"] = []
         result["status"] = "verified" if result["verified"] else "mismatch"
     except ValueError as exc:
+        if _include_words:
+            result["_ours_words"] = ours_words
+            result["_ops"] = getattr(sc, "ops", None)
         result.update(
             error=str(exc),
             status="unresolved",

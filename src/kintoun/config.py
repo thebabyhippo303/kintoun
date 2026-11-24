@@ -18,6 +18,7 @@ class CompilerConfig:
     wineprefix: str = ""
     timeout_s: float = 30.0
     env: dict[str, str] = field(default_factory=dict)
+    assembler: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -28,17 +29,55 @@ class TargetConfig:
     sda_r13: int = 0
     sda_r2: int = 0
     link_layout: str = ""
+    binary: str = ""
+    base_addr: int = 0
+    gp: int = 0
+    sb: int = 0
+    thumb: bool = False
+    endian: str = ""
+
+
+SEARCH_MODES: dict[str, tuple[float, int]] = {
+    "quick": (15.0, 250),
+    "fast": (15.0, 250),
+    "standard": (180.0, 2500),
+    "thorough": (600.0, 10000),
+    "deep": (1800.0, 50000),
+    "unlimited": (86400.0, 1000000),
+}
+
+
+def parse_duration_s(val: Any, default: float = 180.0) -> float:
+    """Parse seconds or human duration strings (`20`, `30s`, `5m`, `2h`, `unlimited`)."""
+    if val is None or val == "":
+        return default
+    if isinstance(val, (int, float)):
+        return float(val)
+    s = str(val).strip().lower()
+    if s in ("unlimited", "inf", "until-match", "max"):
+        return 86400.0
+    if s.endswith("ms"):
+        return max(0.1, float(s[:-2]) / 1000.0)
+    if s.endswith("s"):
+        return float(s[:-1])
+    if s.endswith("m"):
+        return float(s[:-1]) * 60.0
+    if s.endswith("h"):
+        return float(s[:-1]) * 3600.0
+    return float(s)
 
 
 @dataclass
 class SearchConfig:
-    budget_s: float = 60.0
-    max_candidates: int = 600
+    budget_s: float = 180.0
+    max_candidates: int = 2500
     workers: int = 0
     strategies: list[str] = field(default_factory=lambda: ["systematic", "register_focus", "random"])
     cache_dir: str = ".kintoun/cache"
     priors_file: str = ""
     forbid_asm: bool = True
+    mode: str = "standard"
+    plateau: int = 0
 
 
 @dataclass
@@ -97,6 +136,7 @@ def load_config(path: Path | None = None) -> KintounConfig:
         wineprefix=str(comp_raw.get("wineprefix", "")),
         timeout_s=float(comp_raw.get("timeout_s", 30.0)),
         env={str(k): str(v) for k, v in comp_raw.get("env", {}).items()},
+        assembler=list(comp_raw.get("assembler", [])),
     )
     target = TargetConfig(
         arch=str(tgt_raw.get("arch", "ppc_elf")),
@@ -105,15 +145,25 @@ def load_config(path: Path | None = None) -> KintounConfig:
         sda_r13=_parse_int(tgt_raw.get("sda_r13"), 0),
         sda_r2=_parse_int(tgt_raw.get("sda_r2"), 0),
         link_layout=str(tgt_raw.get("link_layout", "")),
+        binary=str(tgt_raw.get("binary", "")),
+        base_addr=_parse_int(tgt_raw.get("base_addr"), 0),
+        gp=_parse_int(tgt_raw.get("gp"), 0),
+        sb=_parse_int(tgt_raw.get("sb"), 0),
+        thumb=bool(tgt_raw.get("thumb", False)),
+        endian=str(tgt_raw.get("endian", "")),
     )
+    mode_name = str(srch_raw.get("mode", "standard")).strip().lower() or "standard"
+    mode_budget, mode_max_cands = SEARCH_MODES.get(mode_name, (180.0, 2500))
     search = SearchConfig(
-        budget_s=float(srch_raw.get("budget_s", 60.0)),
-        max_candidates=int(srch_raw.get("max_candidates", 600)),
+        budget_s=parse_duration_s(srch_raw.get("budget_s"), mode_budget),
+        max_candidates=int(srch_raw.get("max_candidates", mode_max_cands)),
         workers=int(srch_raw.get("workers", 0)),
         strategies=list(srch_raw.get("strategies", ["systematic", "register_focus", "random"])),
         cache_dir=str(srch_raw.get("cache_dir", ".kintoun/cache")),
         priors_file=str(srch_raw.get("priors_file", "")),
         forbid_asm=bool(srch_raw.get("forbid_asm", True)),
+        mode=mode_name,
+        plateau=int(srch_raw.get("plateau", 0)),
     )
     return KintounConfig(
         root=root,

@@ -1,0 +1,78 @@
+# Kintoun 0.2 Real-Toolchain ELF32 Object Fixtures
+
+Every `.o` file in `tests/fixtures/` was compiled from clean-room, self-contained C
+files in this directory from an isolated working directory using relative input paths
+(zero game code, zero host paths):
+
+## Suite A: `compute_reading` (`target.c`, `shifted.c`, `mismatch.c`, `wrong_callee.c`)
+- `target.c`       - Reference C implementation referencing `$gp`/literal-pool global
+                     `g_step`, array `g_table`, struct fields `cfg->scale` and
+                     `cfg->bias`, constant `42`, and external call `ext_clamp`.
+- `shifted.c`      - Byte-identical `compute_reading` preceded by `pre_pad_helper`
+                     so raw section/pool/branch offsets shift while relocated bytes
+                     match 1:1.
+- `mismatch.c`     - Deliberate C mismatch (`cfg->base` vs `cfg->scale` and `99` vs `42`).
+- `wrong_callee.c` - Calls `ext_other` instead of `ext_clamp` (caught strictly after relocation).
+
+## Suite B: `step_channel_block` (`engine_step.c`, `engine_step_shifted.c`, `engine_step_mismatch.c`)
+Multi-block loop & branching fixture with mixed-width struct fields (`short`, `unsigned char`,
+`unsigned short`, `int`), `$gp`/pool scalar `g_mix_bias`, indexed LUT `g_curve_lut[16]`,
+multi-store struct writeback, and multi-argument external call `mix_commit`.
+
+## Exact Build Commands
+
+### 1. `mips/ee_gcc/` (PS2 Emotion Engine, R5900 LE, `SHT_RELA`, `.reginfo`)
+```sh
+mips64r5900el-ps2-elf-gcc -O2 -mno-abicalls -fno-pic -G8 -fno-ident -c <src>.c -o mips/ee_gcc/<src>.o
+```
+
+### 2. `mips/mwccps2/` (Metrowerks CodeWarrior for PS2 R5900, `lq`/`sq` 128-bit saves, `SHT_REL`)
+```sh
+wibo mwccps2.exe -O4,p -nodefaults -c <src>.c -o mips/mwccps2/<src>.o
+```
+
+### 3. `mips/psp_gcc/` (PSP Allegrex LE, `SHT_REL`, `.reginfo`)
+```sh
+psp-gcc -O2 -mno-abicalls -fno-pic -G8 -fno-ident -c <src>.c -o mips/psp_gcc/<src>.o
+```
+
+### 4. `mips/mwccpsp/` (Metrowerks CodeWarrior for PSP Allegrex, `SHT_REL`)
+```sh
+wibo mwccpsp.exe -O4,p -nodefaults -c <src>.c -o mips/mwccpsp/<src>.o
+```
+
+### 5. `mips/mips_le/` (MIPS32 Little-Endian o32, `SHT_REL`)
+```sh
+mips-linux-gcc -O2 -EL -march=mips32 -mabi=32 -mno-abicalls -fno-pic -G8 -fno-ident -c <src>.c -o mips/mips_le/<src>.o
+```
+
+### 6. `mips/mips_be/` (MIPS32 Big-Endian o32, `SHT_REL`)
+```sh
+mips-linux-gcc -O2 -EB -march=mips32 -mabi=32 -mno-abicalls -fno-pic -G8 -fno-ident -c <src>.c -o mips/mips_be/<src>.o
+```
+
+### 7. `arm/a32/` (ARMv5TE A32, `SHT_REL`, `$a`/`$d` mapping symbols)
+```sh
+arm-none-eabi-gcc -O2 -mcpu=arm946e-s -marm -mthumb-interwork -fno-ident -c <src>.c -o arm/a32/<src>.o
+```
+
+### 8. `arm/thumb/` (ARMv4T Thumb-16 + 32-bit `BL`, `SHT_REL`, `$t`/`$d` mapping symbols)
+```sh
+arm-none-eabi-gcc -O2 -mcpu=arm7tdmi -mthumb -mthumb-interwork -fno-ident -c <src>.c -o arm/thumb/<src>.o
+```
+
+### 9. `arm/thumb2/` (ARMv7-M Thumb-2 mixed 16/32-bit width + `MOVW`/`MOVT`, `SHT_REL`)
+```sh
+arm-none-eabi-gcc -O2 -march=armv7-m -mthumb -fno-ident -c <src>.c -o arm/thumb2/<src>.o
+```
+
+### 10. `arm/agbcc/` (GBA `agbcc` + `arm-none-eabi-as`, ARMv4T Thumb + inline literal pool)
+```sh
+agbcc -O2 -mthumb-interwork <src>.c -o <src>.s
+arm-none-eabi-as -mcpu=arm7tdmi -mthumb-interwork <src>.s -o arm/agbcc/<src>.o
+```
+
+### 11. `arm/mwccarm/` (Metrowerks MWCC for ARM / Nintendo DS SDK 2.0 sp2p2, Thumb, `SHT_RELA`)
+```sh
+mwccarm -wrap:sdk 2.0/sp2p2 -O4,p -proc arm946e -thumb -c <src>.c -o arm/mwccarm/<src>.o
+```
