@@ -58,7 +58,7 @@ Kintoun has been trained through research and development on TNRP's 15 game code
 
 ## Beyond game development
 
-Outside of game development, the same concept could be applied to the use of AI models to help adapt aging infrastructure and weapons systems, restore lost manufacturing pipelines and tool chains, and allow modern and aging low and high level systems to natively speak to each other.
+Outside of game development, the same concept could be applied to the use of AI models to help adapt aging infrastructure and defense systems, restore lost manufacturing pipelines and tool chains, and allow modern and aging low and high level systems to natively speak to each other.
 
 ## What makes Kintoun different
 * **Real C only:** Rejects inline assembly, `GLOBAL_ASM`, naked functions, and raw `.long`/`.4byte`/`.word` directives.
