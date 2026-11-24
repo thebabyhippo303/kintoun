@@ -57,8 +57,8 @@ kintoun queue submit --agent agent-1 --func Player__Update --source src/Player/U
   --category missing_cast --note "Changed count field from s16 to u16 to replace extsh with clrlwi"
 ```
 
-When running `kintoun mcp`, agents get 14 structured MCP tools out of the box:
-* **Inspection:** `kintoun_info`, `kintoun_check`, `kintoun_context_pack`
+When running `kintoun mcp`, agents get 19 structured MCP tools out of the box:
+* **Inspection, Import & Atlas:** `kintoun_info`, `kintoun_check`, `kintoun_context_pack`, `kintoun_probe_flags`, `kintoun_scratch`, `kintoun_import_function`, `kintoun_integrate_match`, `kintoun_atlas`
 * **Surgical Iteration & Search:** `kintoun_verify`, `kintoun_score_candidate`, `kintoun_revise_candidate`, `kintoun_score_candidates`, `kintoun_permute`, `kintoun_close_near_miss`
 * **Queue & Chess Clock:** `kintoun_claim_next`, `kintoun_clock`, `kintoun_submit_match`, `kintoun_fail_claim`, `kintoun_queue_status`
 
@@ -116,7 +116,25 @@ For binaries linking SDK or middleware built with a different compiler, add `[[c
 
 ---
 
-## 7. Portable Agent Skills (`skills/CLI-OVERSEER/` and `skills/kintoun-match/`)
+## 7. `PERM_*` User Macros, `INCLUDE_ASM` Import/Integrate, and HTML Decomp Atlas
+
+* **Inline `PERM_*` / `KINTOUN_*` Hypotheses (`macros.py`):** Annotate interacting C hypotheses directly with `PERM_GENERAL(a, b)`, `PERM_INT(lo, hi)`, `PERM_LINESWAP(...)`, `PERM_ONCE(key, stmt)`, `PERM_VAR(k, v)`, or `PERM_SAMELINE(...)` and run `kintoun permute`. Kintoun evaluates your macro space and feeds the top candidates straight into its 12-parent beam search.
+* **Multi-Function Repo Import & Verified Integration (`project_io.py`):**
+  ```bash
+  # Extract standalone candidate .c + header typedefs + compile_commands/ninja flags + .map info:
+  kintoun import src/world.c --func World_Tick --map build/game.map -o cand.c
+
+  # Splice verified C back into src/world.c (replaces INCLUDE_ASM/GLOBAL_ASM & verifies full TU):
+  kintoun integrate cand.c --into src/world.c --func World_Tick
+  ```
+* **Zero-Node Single-File HTML Atlas (`atlas.py`):**
+  ```bash
+  kintoun atlas -o atlas.html
+  ```
+
+---
+
+## 8. Portable Agent Skills (`skills/CLI-OVERSEER/` and `skills/kintoun-match/`)
 
 * **`skills/CLI-OVERSEER/SKILL.md`:** Orchestrator skill enabling any standard CLI coding agent to delegate parallel **Namer** and **Matcher** subagents over Kintoun's queue and governor (standalone or alongside `kintoun overseer`). Includes copy-ready subagent brief templates in `skills/CLI-OVERSEER/references/subagent-briefs.md`.
 * **`skills/kintoun-match/SKILL.md`:** Matcher workflow skill with dedicated symptom-to-C lookup tables for PowerPC (`powerpc.md`), MIPS (`mips.md`), and ARM/Thumb (`arm.md`).

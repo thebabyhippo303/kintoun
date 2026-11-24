@@ -448,6 +448,19 @@ def cmd_permute(args: argparse.Namespace) -> int:
     best = res.get("best") or {}
     if args.write and best.get("code") and (best.get("verified") or args.write_best):
         src_path.write_text(best["code"], encoding="utf-8")
+    if getattr(args, "integrate", None) and best.get("code") and best.get("verified"):
+        from kintoun.project_io import integrate_matched_function
+
+        res["integration"] = integrate_matched_function(
+            best["code"],
+            Path(args.integrate),
+            target_fn.name,
+            verify=True,
+            target_fn=target_fn,
+            ctx=ctx,
+            compiler=compiler,
+            forbid_asm=cfg.search.forbid_asm,
+        )
     if args.json:
         print(json.dumps(res, indent=2))
     else:
@@ -596,6 +609,19 @@ def cmd_close(args: argparse.Namespace) -> int:
     best = res.get("best") or {}
     if args.write and best.get("code") and (res.get("verified") or args.write_best):
         src_path.write_text(best["code"], encoding="utf-8")
+    if getattr(args, "integrate", None) and best.get("code") and res.get("verified"):
+        from kintoun.project_io import integrate_matched_function
+
+        res["integration"] = integrate_matched_function(
+            best["code"],
+            Path(args.integrate),
+            target_fn.name,
+            verify=True,
+            target_fn=target_fn,
+            ctx=ctx,
+            compiler=compiler,
+            forbid_asm=cfg.search.forbid_asm,
+        )
     if args.json:
         print(json.dumps(res, indent=2))
     else:
@@ -649,6 +675,7 @@ def cmd_queue(args: argparse.Namespace) -> int:
             compiler,
             project_root=cfg.root,
             src_path=args.source,
+            integrate_into=getattr(args, "integrate", None) or "",
             engine_note=args.note or "",
             fix_category=args.category or "",
             forbid_asm=cfg.search.forbid_asm,
@@ -781,6 +808,90 @@ def cmd_scratch(args: argparse.Namespace) -> int:
     return 0 if res.get("verified") else 1
 
 
+def cmd_import(args: argparse.Namespace) -> int:
+    from kintoun.project_io import import_project_function
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    res = import_project_function(
+        cfg.root,
+        args.func,
+        c_file=Path(args.source) if args.source else None,
+        map_file=Path(args.map) if args.map else None,
+        out_candidate=Path(args.out) if args.out else None,
+    )
+    if args.json:
+        print(json.dumps(res, indent=2))
+    else:
+        print(f"[IMPORTED] {res['function']} from {res['c_file']} (stub={res['stub_kind']})")
+        if res["tu_flags"]["raw_flags"]:
+            print(f"  discovered TU flags: {' '.join(res['tu_flags']['raw_flags'])}")
+        if res["map_symbol"]:
+            ms = res["map_symbol"]
+            print(f"  map symbol: 0x{ms['va']:08X} ({ms['size']}B, {ms['section']})")
+        if res["candidate_path"]:
+            print(f"  wrote candidate: {res['candidate_path']}")
+        else:
+            print("\n" + res["candidate_code"].rstrip())
+    return 0
+
+
+def cmd_integrate(args: argparse.Namespace) -> int:
+    from kintoun.project_io import integrate_matched_function
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    matched_code = Path(args.source).read_text(encoding="utf-8")
+    do_verify = not args.no_verify
+    ctx = None
+    target_fn = None
+    compiler = None
+    if do_verify:
+        ctx, target_fn = _resolve_target(args, cfg)
+        compiler = make_compiler(cfg, va=target_fn.va)
+    res = integrate_matched_function(
+        matched_code,
+        Path(args.into),
+        args.func,
+        verify=do_verify,
+        target_fn=target_fn,
+        ctx=ctx,
+        compiler=compiler,
+        forbid_asm=cfg.search.forbid_asm,
+        write=True,
+    )
+    if args.json:
+        print(json.dumps(res, indent=2))
+    else:
+        if res.get("ok"):
+            print(f"[INTEGRATED] {res['function']} -> {res['c_file']} (replaced {res['replaced']})")
+        else:
+            print(f"[FAILED] {res.get('error')}", file=sys.stderr)
+    return 0 if res.get("ok") else 1
+
+
+def cmd_atlas(args: argparse.Namespace) -> int:
+    from kintoun.atlas import build_atlas_data, write_atlas_report
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    if getattr(args, "target", None):
+        ctx, _ = load_target_from_object(Path(args.target), None)
+    else:
+        ctx = load_target_from_config(cfg)
+    src_dir = Path(args.src_dir) if args.src_dir else None
+    if args.json and not args.output:
+        print(json.dumps(build_atlas_data(ctx, cfg, src_dir=src_dir), indent=2))
+        return 0
+    out_html = Path(args.output or "atlas.html")
+    rep = write_atlas_report(out_html, ctx, cfg, src_dir=src_dir)
+    if args.json:
+        print(json.dumps(rep, indent=2))
+    else:
+        print(
+            f"Wrote {rep['output_html']} ({rep['total_functions']} functions, "
+            f"{rep['matched_bytes_pct']}% bytes matched)."
+        )
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="kintoun", description="Kintoun matching-C decompilation permuter & verifier.")
     p.add_argument("--version", action="version", version=f"kintoun {__version__}")
@@ -841,6 +952,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_perm.add_argument("--governed", action="store_true", help="Coordinate compile slots across processes via shared governor.")
     p_perm.add_argument("--write", action="store_true", help="Write back source file if a byte-exact match is found.")
     p_perm.add_argument("--write-best", action="store_true", help="With --write, also write best non-matching improvement.")
+    p_perm.add_argument("--integrate", help="On byte-exact match, splice into multi-function .c file and verify full TU.")
     p_perm.add_argument("--json", action="store_true", help="Emit full JSON output.")
     p_perm.set_defaults(func_cb=cmd_permute)
 
@@ -873,6 +985,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_close.add_argument("--workers", type=int, default=2, help="Compiler workers.")
     p_close.add_argument("--write", action="store_true", help="Write back on exact match.")
     p_close.add_argument("--write-best", action="store_true", help="With --write, also write improved near miss.")
+    p_close.add_argument("--integrate", help="On exact match, splice into multi-function .c file and verify full TU.")
     p_close.add_argument("--json", action="store_true", help="Emit JSON output.")
     p_close.set_defaults(func_cb=cmd_close)
 
@@ -881,6 +994,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_q.add_argument("--agent", default="local", help="Agent or developer identifier.")
     p_q.add_argument("--func", help="Function name or 0xADDRESS (for submit/fail).")
     p_q.add_argument("--source", help="Candidate .c path (for submit).")
+    p_q.add_argument("--integrate", help="Multi-function project .c path to splice and verify on submit.")
     p_q.add_argument("--reason", help="Failure reason (structural blockers allowed early).")
     p_q.add_argument("--note", help="Engine note or failure note.")
     p_q.add_argument("--category", help="Winning fix category for prior learning.")
@@ -934,6 +1048,30 @@ def build_parser() -> argparse.ArgumentParser:
     p_sc.add_argument("--out", help="Write best/verified C source to path.")
     p_sc.add_argument("--json", action="store_true", help="Emit JSON output.")
     p_sc.set_defaults(func_cb=cmd_scratch)
+
+    p_imp = sub.add_parser("import", help="Extract a standalone compilable candidate .c from an INCLUDE_ASM/GLOBAL_ASM repo.")
+    p_imp.add_argument("source", nargs="?", help="Optional multi-function .c file (auto-searched under src/ if omitted).")
+    p_imp.add_argument("--func", required=True, help="Target function name.")
+    p_imp.add_argument("--map", help="Optional GNU ld / mwld / dtk .map file to resolve symbol VA and size.")
+    p_imp.add_argument("-o", "--out", help="Output path for extracted candidate .c file.")
+    p_imp.add_argument("--json", action="store_true", help="Emit JSON output.")
+    p_imp.set_defaults(func_cb=cmd_import)
+
+    p_int = sub.add_parser("integrate", help="Splice a matched C function back into an INCLUDE_ASM/GLOBAL_ASM .c file and verify.")
+    p_int.add_argument("source", help="Path to matched standalone .c file.")
+    p_int.add_argument("--into", required=True, help="Target multi-function project .c file.")
+    p_int.add_argument("--func", required=True, help="Function name to splice.")
+    p_int.add_argument("--target", help="Optional standalone target .o file for verification.")
+    p_int.add_argument("--no-verify", action="store_true", help="Skip full-TU compilation & verification check.")
+    p_int.add_argument("--json", action="store_true", help="Emit JSON output.")
+    p_int.set_defaults(func_cb=cmd_integrate)
+
+    p_atl = sub.add_parser("atlas", help="Generate a self-contained single-file HTML Decomp Atlas & Run Report.")
+    p_atl.add_argument("-o", "--output", default="atlas.html", help="Output HTML file path (default: atlas.html).")
+    p_atl.add_argument("--target", help="Optional standalone .o file (alternative to kintoun.toml binary).")
+    p_atl.add_argument("--src-dir", help="Matched C directory (defaults to ./src).")
+    p_atl.add_argument("--json", action="store_true", help="Emit JSON summary.")
+    p_atl.set_defaults(func_cb=cmd_atlas)
     return p
 
 

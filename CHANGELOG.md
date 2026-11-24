@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0
+
+Kintoun has been trained through research and development on TNRP's 15 game codebase.
+
+### Parametric `PERM_*` / `KINTOUN_*` macro DSL + beam search hybrid
+* **User directed permutation macros in pure stdlib (`macros.py`, `runner.py`):** Supports `PERM_GENERAL`, `PERM_INT`, `PERM_LINESWAP`, `PERM_ONCE`, `PERM_VAR`, `PERM_SAMELINE` / `PERM_FORCE_SAMELINE`, `PERM_RANDOMIZE` and `PERM_IGNORE` (plus `KINTOUN_*` aliases and `(,)` comma escapes) with zero `cpp`, `pycparser` or `PLY` dependency. Unlike random single pass macro expanders, Kintoun evaluates the macro space and feeds the top scoring expansions directly into its 12 parent beam search, target directed mutations and register permuter.
+
+### `INCLUDE_ASM` / `GLOBAL_ASM` project importer, linker `.map` parser and verified post match integrator
+* **Repo importer and header slicer (`project_io.py`, `kintoun import`, `kintoun_import_function`):** Parses GNU `ld`, Metrowerks `mwld` and `dtk` `.map` files, extracts per file `-I` / `-D` / optimization flags from `compile_commands.json` and `build.ninja`, transitively slices `typedef` / `struct` / `union` / `enum` definitions from local project headers without running external `cpp`, and builds standalone compilable candidate `.c` files from `INCLUDE_ASM` or `#pragma GLOBAL_ASM` stubs.
+* **Atomic verified post match integrator (`project_io.py`, `kintoun integrate`, `kintoun_integrate_match`, `--integrate`):** Splices a matched C function back into its multi function `.c` file (replacing `INCLUDE_ASM` or `GLOBAL_ASM`), strips duplicate declarations and strictly verifies that the integrated translation unit still compiles and links byte exact before writing to disk.
+
+### Zero Torch TF IDF assembly similarity, logistic win calibration, HTML Decomp Atlas and race abort
+* **Per ISA opcode bigram TF IDF similarity and logistic model (`similarity.py`, `inspect_fn.py`):** Retrieves the top structurally similar already matched `(asm, C)` functions and solved callers in `kintoun context` across PowerPC, MIPS and ARM/Thumb in milliseconds using pure stdlib TF IDF cosine similarity (zero PyTorch or external embedding models), and fits an L2 logistic match probability model (`estimated_match_prob`) as projects accumulate solved and timed out functions.
+* **Single file interactive HTML Decomp Atlas (`atlas.py`, `kintoun atlas`, `kintoun_atlas`):** Generates a self contained `atlas.html` dashboard (2D PCA structural scatter map, module coverage bars, searchable function table sorted by match odds or near miss %, disassembly drawer and 1 click CLI copy) with zero Node, React or CDN dependencies.
+* **Background solved early abort signal (`queue.py`, `candidates.py`, `mcp_server.py`):** When background `close`, `overseer` or another worker verifies a function, subsequent `score_candidate` / `revise_candidate` calls immediately return `already_verified: true` without burning redundant compile slots.
+
 ## 0.4.0
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase.

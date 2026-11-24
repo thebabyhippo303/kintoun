@@ -2,7 +2,7 @@
 
 **Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF32 verifier for PowerPC, MIPS, and ARM.**
 
-Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)), expanded in **0.2.0** with dedicated first-class **MIPS** and **ARM / Thumb** engines, expanded in **0.3.0** with a single-machine governor, zero-LLM near-miss closer, multi-agent chess-clock queue, Overseer, and agent skills (`CLI-OVERSEER` and `kintoun-match`), and expanded in **0.4.0** with binary xrefs, struct-field consensus, inlined-helper detection, bit-exact `.rodata` float & magic-division solving, wrong-compiler fingerprinting + `[[compiler_bands]]`, `kintoun probe-flags`, and `kintoun scratch` (`decomp.me`).
+Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)), expanded in **0.2.0** with dedicated first-class **MIPS** and **ARM / Thumb** engines, expanded in **0.3.0** with a single-machine governor, zero-LLM near-miss closer, multi-agent chess-clock queue, Overseer, and agent skills (`CLI-OVERSEER` and `kintoun-match`), expanded in **0.4.0** with binary xrefs, struct-field consensus, inlined-helper detection, bit-exact `.rodata` float & magic-division solving, wrong-compiler fingerprinting + `[[compiler_bands]]`, `kintoun probe-flags`, and `kintoun scratch` (`decomp.me`), and expanded in **0.5.0** with pure-stdlib `PERM_*` / `KINTOUN_*` user macros + beam-search hybrid, `INCLUDE_ASM`/`GLOBAL_ASM` + `.map` project `import` & full-TU verified `integrate`, zero-Torch TF-IDF assembly similarity + logistic match calibration, and a single-file HTML Decomp Atlas (`kintoun atlas`).
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase. On a held out benchmark of 69 real console functions it starts from raw `m2c` output and reaches 63.6% aligned on average (75% median), with 8 exact matches. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
@@ -50,6 +50,11 @@ kintoun overseer once --brain none
 # Probe optimal per-file compiler flags or run a decomp.me scratch locally:
 kintoun probe-flags src/MyClass/MyFunc.c --func MyClass__MyFunc
 kintoun scratch https://decomp.me/scratch/abc123 --out matched.c
+
+# Import an INCLUDE_ASM/GLOBAL_ASM function, splice a match back into its TU, or build an HTML Atlas:
+kintoun import src/player.c --func Player_Update -o cand.c
+kintoun integrate cand.c --into src/player.c --func Player_Update
+kintoun atlas -o atlas.html
 ```
 
 ## Plugging into `dbzsagas-decomp`
@@ -75,7 +80,7 @@ kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
 * [skills/kintoun-match/SKILL.md](skills/kintoun-match/SKILL.md) - matcher skill & PowerPC / MIPS / ARM symptom-to-C lookup tables
 
 ## MCP server
-An optional MCP server exposes 16 Kintoun tools (`verify`, `permute`, `info`, `check`, `context_pack`, `probe_flags`, `scratch`, `score_candidate`, `revise_candidate`, `score_candidates`, `close_near_miss`, `claim_next`, `clock`, `submit_match`, `fail_claim`, and `queue_status`). Install the optional extra, then start the server:
+An optional MCP server exposes 19 Kintoun tools (`verify`, `permute`, `info`, `check`, `context_pack`, `probe_flags`, `scratch`, `import_function`, `integrate_match`, `atlas`, `score_candidate`, `revise_candidate`, `score_candidates`, `close_near_miss`, `claim_next`, `clock`, `submit_match`, `fail_claim`, and `queue_status`). Install the optional extra, then start the server:
 
 ```bash
 pip install -e ".[mcp]"

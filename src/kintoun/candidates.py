@@ -143,8 +143,27 @@ class CandidateStore:
         parent_id: str = "",
         include_code: bool = False,
         tier: str = "interactive",
+        abort_if_done: bool = False,
     ) -> dict[str, Any]:
         """Compile (or hit shared cache, including cached compile errors) and register `candidate_id`."""
+        done_meta: dict[str, Any] | None = None
+        q_db = self.cache_dir.parent / "queue.sqlite3"
+        if q_db.is_file():
+            from kintoun.queue import WorkQueue
+
+            done_meta = WorkQueue(self.cache_dir.parent).verified_info(target_fn.name)
+            if done_meta and abort_if_done:
+                cand_id = self.make_id(target_fn.name, target_fn.va, source)
+                return {
+                    "status": "already_verified",
+                    "verified": True,
+                    "name": target_fn.name,
+                    "addr": f"0x{target_fn.va:08X}",
+                    "candidate_id": cand_id,
+                    "cache_hit": True,
+                    **done_meta,
+                }
+
         target_id = f"{target_fn.name}@0x{target_fn.va:08X}:{hashlib.sha256(target_fn.data).hexdigest()[:16]}"
         ckey = source_key(source, target_id, compiler.flags, compiler.compiler_id)
 
@@ -169,6 +188,8 @@ class CandidateStore:
         cand_id = self.put(target_fn.name, target_fn.va, source, res, strategy=strategy, parent_id=parent_id)
         out = dict(res)
         out["candidate_id"] = cand_id
+        if done_meta:
+            out.update(done_meta)
         if parent_id:
             out["parent_id"] = parent_id
         if include_code:
@@ -186,8 +207,23 @@ class CandidateStore:
         lines: int = 24,
         forbid_asm: bool = True,
         include_code: bool = False,
+        abort_if_done: bool = False,
     ) -> dict[str, Any]:
         """Apply exact single-match `old -> new` edits to `cand_id`, re-score strictly, and compute deltas."""
+        if abort_if_done and (self.cache_dir.parent / "queue.sqlite3").is_file():
+            from kintoun.queue import WorkQueue
+
+            done_meta = WorkQueue(self.cache_dir.parent).verified_info(target_fn.name)
+            if done_meta:
+                return {
+                    "status": "already_verified",
+                    "verified": True,
+                    "name": target_fn.name,
+                    "addr": f"0x{target_fn.va:08X}",
+                    "candidate_id": cand_id,
+                    "cache_hit": True,
+                    **done_meta,
+                }
         base = self.get(cand_id)
         if base is None:
             raise ValueError(f"unknown candidate_id: {cand_id}")

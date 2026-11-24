@@ -127,6 +127,7 @@ def run_mcp(config_path: Path | None = None) -> None:
         target_obj: str = "",
         lines: int = 24,
         include_code: bool = False,
+        abort_if_done: bool = True,
     ) -> str:
         """Score inline C code (using shared cache & governor) and return a `candidate_id` for surgical edits."""
         ctx, tf = _load(func, target_obj)
@@ -139,9 +140,11 @@ def run_mcp(config_path: Path | None = None) -> None:
             lines=lines,
             forbid_asm=cfg.search.forbid_asm,
             include_code=include_code,
+            abort_if_done=abort_if_done,
         )
-        aligned = float(((res.get("search") or {}).get("aligned_pct")) or 0.0)
-        queue.record_progress(tf.name, aligned)
+        if not res.get("already_verified"):
+            aligned = float(((res.get("search") or {}).get("aligned_pct")) or 0.0)
+            queue.record_progress(tf.name, aligned)
         return json.dumps(res, indent=2)
 
     @mcp.tool()
@@ -152,6 +155,7 @@ def run_mcp(config_path: Path | None = None) -> None:
         target_obj: str = "",
         lines: int = 24,
         include_code: bool = False,
+        abort_if_done: bool = True,
     ) -> str:
         """Apply exact single-match `[{'old': ..., 'new': ...}]` surgical edits to `candidate_id` and re-score."""
         ctx, tf = _load(func, target_obj)
@@ -165,9 +169,11 @@ def run_mcp(config_path: Path | None = None) -> None:
             lines=lines,
             forbid_asm=cfg.search.forbid_asm,
             include_code=include_code,
+            abort_if_done=abort_if_done,
         )
-        aligned = float(((res.get("search") or {}).get("aligned_pct")) or 0.0)
-        queue.record_progress(tf.name, aligned)
+        if not res.get("already_verified"):
+            aligned = float(((res.get("search") or {}).get("aligned_pct")) or 0.0)
+            queue.record_progress(tf.name, aligned)
         return json.dumps(res, indent=2)
 
     @mcp.tool()
@@ -298,5 +304,73 @@ def run_mcp(config_path: Path | None = None) -> None:
             ),
             indent=2,
         )
+
+    @mcp.tool()
+    def kintoun_import_function(
+        func: str,
+        c_file: str = "",
+        map_file: str = "",
+        out_candidate: str = "",
+    ) -> str:
+        """Extract a standalone compilable candidate `.c` + TU flags from an `INCLUDE_ASM`/`GLOBAL_ASM` repo."""
+        from kintoun.project_io import import_project_function
+
+        return json.dumps(
+            import_project_function(
+                cfg.root,
+                func,
+                c_file=Path(c_file) if c_file else None,
+                map_file=Path(map_file) if map_file else None,
+                out_candidate=Path(out_candidate) if out_candidate else None,
+            ),
+            indent=2,
+        )
+
+    @mcp.tool()
+    def kintoun_integrate_match(
+        func: str,
+        project_c_file: str,
+        code: str = "",
+        candidate_id: str = "",
+        target_obj: str = "",
+        verify: bool = True,
+    ) -> str:
+        """Splice a verified C match into a multi-function `INCLUDE_ASM`/`GLOBAL_ASM` `.c` file and verify the TU."""
+        from kintoun.project_io import integrate_matched_function
+
+        src = code
+        if not src and candidate_id:
+            rec = store.get(candidate_id)
+            if rec:
+                src = rec["code"]
+        ctx = None
+        tf = None
+        compiler = None
+        if verify:
+            ctx, tf = _load(func, target_obj)
+            compiler = make_compiler(cfg, va=tf.va)
+        return json.dumps(
+            integrate_matched_function(
+                src,
+                Path(project_c_file) if Path(project_c_file).is_absolute() else (cfg.root / project_c_file),
+                func,
+                verify=verify,
+                target_fn=tf,
+                ctx=ctx,
+                compiler=compiler,
+                forbid_asm=cfg.search.forbid_asm,
+            ),
+            indent=2,
+        )
+
+    @mcp.tool()
+    def kintoun_atlas(output_html: str = "atlas.html", src_dir: str = "") -> str:
+        """Generate a self-contained single-file HTML Decomp Atlas & Run Report for the project."""
+        from kintoun.atlas import write_atlas_report
+
+        ctx = load_target_from_config(cfg)
+        out_p = Path(output_html) if Path(output_html).is_absolute() else (cfg.root / output_html)
+        sdir = (Path(src_dir) if Path(src_dir).is_absolute() else (cfg.root / src_dir)) if src_dir else None
+        return json.dumps(write_atlas_report(out_p, ctx, cfg, src_dir=sdir), indent=2)
 
     mcp.run()

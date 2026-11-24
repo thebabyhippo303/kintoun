@@ -511,12 +511,16 @@ def score_difficulty(
     score = max(0, min(100, int(round(raw))))
     tier = _tier_for(score)
     time_mult = 1.5 if tier == "brutal" else 1.25 if tier == "hard" else 1.0
+    from kintoun.similarity import extract_numeric_features, predict_match_probability
+
+    match_prob = predict_match_probability(extract_numeric_features(target_fn, ctx))
     return {
         "name": target_fn.name,
         "addr": f"0x{target_fn.va:08X}",
         "score": score,
         "tier": tier,
         "tags": tags,
+        "estimated_match_prob": match_prob,
         "recommended_time_multiplier": time_mult,
         "plain_c": len(dec["blockers"]) == 0,
         "blockers": dec["blockers"],
@@ -589,7 +593,17 @@ def build_context_pack(
         cache_dir=cache_root,
     )
 
-    protos, examples = _scan_matched_sources(eff_src, set(dec["callees"]))
+    from kintoun.similarity import find_similar_functions
+
+    protos, fallback_examples = _scan_matched_sources(eff_src, set(dec["callees"]))
+    sim_examples = find_similar_functions(
+        target_fn,
+        ctx,
+        src_dir=eff_src,
+        incoming_callers=xref_info["incoming_callers"],
+        top_k=3,
+    )
+    examples = sim_examples if sim_examples else fallback_examples
     hint_data: dict[str, Any] | None = None
     if cache_root is not None:
         hint_path = cache_root.parent / "hints" / f"{target_fn.name}.json"
@@ -612,6 +626,7 @@ def build_context_pack(
             "score": diff["score"],
             "tier": diff["tier"],
             "tags": diff["tags"],
+            "estimated_match_prob": diff["estimated_match_prob"],
             "recommended_time_multiplier": diff["recommended_time_multiplier"],
         },
         "incoming_callers": xref_info["incoming_callers"],

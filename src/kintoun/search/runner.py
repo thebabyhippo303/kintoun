@@ -730,8 +730,23 @@ def run_search(
         "stopped": None,
         "workers": max_workers,
     }
-    pending: deque[tuple[str, str]] = deque([("input", source)])
-    seen = {hashlib.sha256(source.encode("utf-8")).digest()}
+    from kintoun.macros import expand_perm_macros, has_perm_macros
+
+    if has_perm_macros(source):
+        macro_info = expand_perm_macros(source, max_variants=min(max_candidates, 512), seed=seed)
+        macro_vars = macro_info["variants"]
+        stats["macro_variants"] = len(macro_vars)
+        stats["macro_total_combinations"] = macro_info["total_combinations"]
+        pending = deque([("input", macro_vars[0])])
+        seen = {hashlib.sha256(macro_vars[0].encode("utf-8")).digest()}
+        for mtxt in macro_vars[1:]:
+            md = hashlib.sha256(mtxt.encode("utf-8")).digest()
+            if md not in seen and (not forbid_asm or not real_c_violation(mtxt)):
+                seen.add(md)
+                pending.append(("perm_macro", mtxt))
+    else:
+        pending = deque([("input", source)])
+        seen = {hashlib.sha256(source.encode("utf-8")).digest()}
     rng = random.Random(seed)
     best: dict[str, Any] | None = None
     input_result: dict[str, Any] | None = None
@@ -944,12 +959,13 @@ def run_search(
                         failed_families.add(family)
                 if family == "input":
                     input_result = result
+                    in_src = result["_source"]
                     if result.get("status") in ("mismatch", "unresolved"):
-                        src_d = hashlib.sha256(source.encode("utf-8")).digest()
+                        src_d = hashlib.sha256(in_src.encode("utf-8")).digest()
                         expanded_beam.add(src_d)
                         prepend(
                             generate_proposals(
-                                source,
+                                in_src,
                                 strategies,
                                 rng,
                                 min(800, max(200, max_candidates * 2)),
@@ -961,7 +977,7 @@ def run_search(
                             )
                         )
                     elif result.get("status") == "compile_error":
-                        prepend(_arch_recovery_proposals(source, ctx.arch, target_fn, ctx=ctx))
+                        prepend(_arch_recovery_proposals(in_src, ctx.arch, target_fn, ctx=ctx))
 
                 _offer_beam(result)
 

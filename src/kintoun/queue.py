@@ -327,6 +327,28 @@ class WorkQueue:
             "clock_line": clk["clock_line"],
         }
 
+    def verified_info(self, func_or_addr: str) -> dict[str, Any] | None:
+        """Return match info if `func_or_addr` is already marked `done` (for early-abort race coordination)."""
+        key = self._norm_key(func_or_addr)
+        with self._lock, self._connect() as conn:
+            r = conn.execute(
+                "SELECT addr, name, src_path, note, updated_at FROM queue WHERE (addr = ? OR name = ?) AND status = 'done'",
+                (key, func_or_addr),
+            ).fetchone()
+        if r is None:
+            return None
+        return {
+            "already_verified": True,
+            "addr": r["addr"],
+            "name": r["name"],
+            "verified_src_path": r["src_path"],
+            "note": r["note"],
+            "abort_hint": (
+                f"{r['name']} ({r['addr']}) is already VERIFIED ({r['note']}). "
+                "Stop iterating on this function and claim your next function."
+            ),
+        }
+
     def record_progress(self, func_or_addr: str, best_pct: float) -> None:
         """Update `best_pct` watermark on a function as search/scoring progresses."""
         key = self._norm_key(func_or_addr)
@@ -423,11 +445,12 @@ class WorkQueue:
         *,
         project_root: Path,
         src_path: str = "",
+        integrate_into: str = "",
         engine_note: str = "",
         fix_category: str = "",
         forbid_asm: bool = True,
     ) -> dict[str, Any]:
-        """Strictly re-verify `source_code`, write `src_path`, log `engine_note`, and mark `done`."""
+        """Strictly re-verify `source_code`, write `src_path` (or splice `integrate_into`), log `engine_note`, and mark `done`."""
         if forbid_asm:
             bad = real_c_violation(source_code)
             if bad:
@@ -459,9 +482,30 @@ class WorkQueue:
                 "verification": ver,
             }
 
-        out_file = Path(rel_out) if Path(rel_out).is_absolute() else (Path(project_root) / rel_out)
-        out_file.parent.mkdir(parents=True, exist_ok=True)
-        out_file.write_text(source_code, encoding="utf-8")
+        integration_res: dict[str, Any] | None = None
+        if integrate_into:
+            from kintoun.project_io import integrate_matched_function
+
+            int_path = Path(integrate_into) if Path(integrate_into).is_absolute() else (Path(project_root) / integrate_into)
+            integration_res = integrate_matched_function(
+                source_code,
+                int_path,
+                target_fn.name,
+                verify=True,
+                target_fn=target_fn,
+                ctx=ctx,
+                compiler=compiler,
+                forbid_asm=forbid_asm,
+                write=True,
+            )
+            if not integration_res.get("ok"):
+                return integration_res
+            out_file = int_path
+            rel_out = integrate_into
+        else:
+            out_file = Path(rel_out) if Path(rel_out).is_absolute() else (Path(project_root) / rel_out)
+            out_file.parent.mkdir(parents=True, exist_ok=True)
+            out_file.write_text(source_code, encoding="utf-8")
 
         now = time.time()
         with self._lock, self._connect() as conn:

@@ -26,7 +26,8 @@ description: Byte-exact matching-C decompilation workflow using Kintoun across P
      - PowerPC (`ppc_elf`, ProDG / MWCC): `references/powerpc.md`
      - MIPS (`mips_elf`, `ee-gcc` / `psp-gcc` / MWCC): `references/mips.md`
      - ARM / Thumb (`arm_elf`, `agbcc` / `arm-none-eabi-gcc` / `mwccarm`): `references/arm.md`
-   - Apply surgical `kintoun_revise_candidate` edits addressing the top mismatch symptom.
+   - Apply surgical `kintoun_revise_candidate` edits addressing the top mismatch symptom (if `already_verified: true` is returned, another worker or background closer already solved it - stop immediately and claim your next function).
+   - When multiple C sites interact (e.g. local declaration order + loop condition + cast), annotate `PERM_GENERAL(...)`, `PERM_LINESWAP(...)`, `PERM_INT(lo, hi)`, `PERM_ONCE(key, stmt)`, or `PERM_SAMELINE(...)` directly in C and run `kintoun_permute` so Kintoun searches the joint macro space + beam mutations together.
    - At `>= 85%` aligned, run `kintoun_close_near_miss` (or `kintoun close`) to classify the remaining diff (`register_allocation`, `instruction_order`, `missing_cast`, `stack_layout`, `constant_literal`, `branch_shape`, `float_shape`) and run targeted 1-to-2-pass permutation.
-5. **Strict Verify & Submit:**
-   - Confirm `verified == true` via `kintoun_verify` (`kintoun verify`), then call `kintoun_submit_match` with a short `fix_category` and `engine_note` recording what C construct closed the final diff so `kintoun bench --learn-priors` improves future searches.
+5. **Strict Verify, Integrate & Submit:**
+   - Confirm `verified == true` via `kintoun_verify` (`kintoun verify`), optionally splice into multi-function `INCLUDE_ASM` / `GLOBAL_ASM` files via `kintoun_integrate_match` (`kintoun integrate`), and call `kintoun_submit_match` with a short `fix_category` and `engine_note` recording what C construct closed the final diff so `kintoun bench --learn-priors` improves future searches.

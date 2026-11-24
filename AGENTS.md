@@ -1,6 +1,6 @@
 # AGENTS.md - Kintoun Setup, Workflow, and Maintenance Guide for AI Agents
 
-**Current Version:** `0.4.0` (keep this file updated alongside `pyproject.toml`, `src/kintoun/__init__.py`, and `CHANGELOG.md` on every release).
+**Current Version:** `0.5.0` (keep this file updated alongside `pyproject.toml`, `src/kintoun/__init__.py`, and `CHANGELOG.md` on every release).
 
 This guide is written for AI coding agents (Claude Code, Codex CLI, Gemini CLI, OpenCode, Cursor, etc.) when a user asks you to **set up Kintoun on their decompilation repository**, **match or name functions**, or **extend Kintoun itself**.
 
@@ -75,8 +75,8 @@ mkdir -p .codex/skills  && cp -r /path/to/kintoun/skills/* .codex/skills/
 mkdir -p .gemini/skills && cp -r /path/to/kintoun/skills/* .gemini/skills/
 ```
 
-If the user's client supports MCP, register `kintoun mcp` (run from the decomp repo root, or `kintoun -c /path/to/kintoun.toml mcp`) to expose all **16 MCP tools**:
-- **Inspection & Setup:** `kintoun_info`, `kintoun_check`, `kintoun_context_pack`, `kintoun_probe_flags`, `kintoun_scratch`
+If the user's client supports MCP, register `kintoun mcp` (run from the decomp repo root, or `kintoun -c /path/to/kintoun.toml mcp`) to expose all **19 MCP tools**:
+- **Inspection, Import & Atlas:** `kintoun_info`, `kintoun_check`, `kintoun_context_pack`, `kintoun_probe_flags`, `kintoun_scratch`, `kintoun_import_function`, `kintoun_integrate_match`, `kintoun_atlas`
 - **Scoring & Search:** `kintoun_verify`, `kintoun_score_candidate`, `kintoun_revise_candidate`, `kintoun_score_candidates`, `kintoun_permute`, `kintoun_close_near_miss`
 - **Multi-Agent Queue & Clock:** `kintoun_claim_next`, `kintoun_clock`, `kintoun_submit_match`, `kintoun_fail_claim`, `kintoun_queue_status`
 
@@ -110,8 +110,8 @@ If the user's client supports MCP, register `kintoun mcp` (run from the decomp r
 - `src/kintoun/verify.py`, `verify_mips.py`, `verify_arm.py` - Strict relocation-exact verifiers.
 - `src/kintoun/governor.py` - 3-tier cross-process compile governor, zram/cgroup `AutoTuner`, 64-stripe deduper, and persistent Wine helper.
 - `src/kintoun/candidates.py` - `cand_<12hex>` candidate store, negative compile-error cache, `revise`, and `score_batch`.
-- `src/kintoun/inspect_fn.py`, `xref.py`, `constants.py`, `compiler_id.py` & `closer.py` - Blocker & wrong-compiler `check`, static difficulty scorer, `context_pack` (with incoming callers/vtables, struct-offset consensus, inlined-helper detection, bit-exact `.rodata` floats, and magic-division inversion), and 7-class zero-AI near-miss closer.
-- `src/kintoun/prober.py` & `scratch.py` - Parallel compiler flag prober (`probe-flags`) and `decomp.me` scratch importer (`scratch`).
+- `src/kintoun/inspect_fn.py`, `xref.py`, `constants.py`, `compiler_id.py`, `similarity.py` & `closer.py` - Blocker & wrong-compiler `check`, static + logistic-calibrated difficulty scorer, `context_pack` (with TF-IDF opcode-bigram similar matched C functions, incoming callers/vtables, struct-offset consensus, inlined-helper detection, bit-exact `.rodata` floats, and magic-division inversion), and 7-class zero-AI near-miss closer.
+- `src/kintoun/macros.py`, `project_io.py`, `atlas.py`, `prober.py` & `scratch.py` - Pure-stdlib `PERM_*` / `KINTOUN_*` parametric macro DSL + beam-search hybrid, `INCLUDE_ASM`/`GLOBAL_ASM` + `.map` + `compile_commands.json` project importer (`import`) and full-TU verified post-match integrator (`integrate`), single-file HTML Decomp Atlas (`atlas`), parallel compiler flag prober (`probe-flags`), and `decomp.me` scratch importer (`scratch`).
 - `src/kintoun/queue.py`, `overseer.py`, `lab.py` - SQLite WAL chess-clock work queue, `none`/`single`/`dual`-brain Overseer, and benchmark/prior runner.
 - `skills/` & `docs/` - Portable `CLI-OVERSEER` and `kintoun-match` skills plus user documentation.
 
