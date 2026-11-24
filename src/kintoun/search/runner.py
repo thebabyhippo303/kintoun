@@ -678,6 +678,7 @@ def run_search(
     forbid_asm: bool = True,
     seed: int = 0,
     plateau: int = 0,
+    governed: bool = False,
 ) -> dict[str, Any]:
     """Run a bounded parallel real-C mutation, seed-recovery, & register-permutation beam search."""
     if not 0.1 <= budget_s <= 86400:
@@ -691,6 +692,13 @@ def run_search(
         raise ValueError(f"REAL C ONLY: input contains '{real_c_violation(source)}'")
 
     cache = ResultCache(cache_dir) if cache_dir else None
+    gov = None
+    deduper = None
+    if governed and cache_dir is not None:
+        from kintoun.governor import CompileDeduper, CompileGovernor
+
+        gov = CompileGovernor(cache_dir, caller_id=f"search-{os.getpid()}")
+        deduper = CompileDeduper(cache_dir)
     max_workers = workers if workers > 0 else max(1, min((os.cpu_count() or 2) // 2, 8))
     max_workers = min(max_workers, max_candidates)
     target_id = f"{target_fn.name}@0x{target_fn.va:08X}:{hashlib.sha256(target_fn.data).hexdigest()[:16]}"
@@ -828,6 +836,37 @@ def run_search(
         extra_kw: dict[str, Any] = {}
         if ctx.arch not in ("mips", "mips_elf", "arm", "arm_elf"):
             extra_kw["_include_words"] = True
+        if deduper is not None and gov is not None and cache is not None:
+            with deduper.lock_key(key):
+                cached2 = cache.get(key)
+                if cached2 is not None:
+                    cached2["cache_hit"] = True
+                    cached2["_compiled"] = False
+                    cached2["_family"] = family
+                    cached2["_source"] = text
+                    return cached2
+                rem = max(0.2, deadline - time.monotonic())
+                with gov.acquire(tier="search", timeout_s=min(30.0, rem)) as admitted:
+                    if not admitted:
+                        return None
+                    res = verify_source(
+                        text,
+                        target_fn,
+                        ctx,
+                        compiler,
+                        lines=12,
+                        forbid_asm=forbid_asm,
+                        partial_link=False,
+                        placement_cache=placement_cache,
+                        **extra_kw,
+                    )
+                res["cache_hit"] = False
+                res["_compiled"] = True
+                to_cache = {k: v for k, v in res.items() if not k.startswith("_")}
+                cache.put(key, to_cache)
+                res["_family"] = family
+                res["_source"] = text
+                return res
         res = verify_source(
             text,
             target_fn,

@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0
+
+Kintoun has been trained through research and development on TNRP's 15 game codebase.
+
+### Single machine resource governor and candidate store
+* **3 tier compile governor (`governor.py`, `kintoun warm-wine`, `--governed`):** Coordinates concurrent compiles across processes on one machine (`interactive`, `search` and `background` priority tiers), deduplicates identical concurrent compiles across 64 lock stripes, auto tunes duty cycle from active working set memory, Linux PSI and swap in rate, and manages persistent `wineserver` sessions for Windows compilers under Wine.
+* **Surgical candidate revisions (`candidates.py`):** Content addressed `cand_<12hex>` store that caches both strict verification scores and deterministic compiler errors, with single match `revise_candidate` patches and parallel `score_candidates` batch scoring.
+
+### Inspection, near miss closer and benchmark lab
+* **Blocker check and context packs (`inspect_fn.py`, `ppc_disasm.py`, `kintoun check`, `kintoun context`):** Per architecture non plain C instruction checks (paired single, COP0/VU0/VFPU, MCR/MRC/SWI, cache ops and trap words), `0..100` static difficulty scoring (`easy`, `medium`, `hard`, `brutal`), a pure stdlib PowerPC disassembler alongside MIPS and ARM, and one call ~1.5k token function briefs.
+* **Zero AI near miss closer (`closer.py`, `kintoun close`):** Classifies strict assembly diffs across PowerPC, MIPS and ARM into seven mismatch classes (`register_allocation`, `instruction_order`, `missing_cast`, `stack_layout`, `constant_literal`, `branch_shape`, `float_shape`) and runs 1 to 2 targeted search passes, saving `.kintoun/hints/` when improved.
+* **Benchmark runner and prior learner (`lab.py`, `kintoun bench`):** Runs JSON benchmark manifests with zero regression checks against a baseline report and learns empirical mutation family priors (`--learn-priors`).
+
+### Multi agent queue, Overseer and agent skills
+* **Work queue with time limits (`queue.py`, `kintoun queue`, 14 MCP tools):** SQLite WAL multi agent queue supporting simultaneous claims per agent, enforced per function time clocks (refusing early non structural give ups), timeout quarantine and `unquarantine`, strict re verification on submit and research note logging.
+* **Out of the box Overseer (`overseer.py`, `kintoun overseer`):** Runs with `--brain none` ($0 code only reflexes, no API key needed), `--brain single` (one API key or local OpenAI compatible Ollama/vLLM endpoint for state gated triage, rule checks and steering under a daily USD cap) or `--brain dual` (separate fast triage/check brain and main brain with fallback).
+* **Agent skill packs (`skills/CLI-OVERSEER/` and `skills/kintoun-match/`):** Includes `CLI-OVERSEER` for standard CLI coding agents to orchestrate Matcher and Namer subagents (standalone or alongside `kintoun overseer`), plus `kintoun-match` with PowerPC, MIPS and ARM/Thumb symptom to C lookup tables. See [docs/WORKFLOWS.md](docs/WORKFLOWS.md).
+
 ## 0.2.0
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase.

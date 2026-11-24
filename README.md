@@ -2,18 +2,18 @@
 
 **Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF32 verifier for PowerPC, MIPS, and ARM.**
 
-Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)) and expanded in **0.2.0** with dedicated first-class **MIPS** (PS2 Emotion Engine, PSP Allegrex, MIPS32 LE/BE) and **ARM / Thumb** (ARMv4T/ARMv5TE GBA and Nintendo DS, A32, Thumb-1, and Thumb-2 mixed width) engines.
+Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)), expanded in **0.2.0** with dedicated first-class **MIPS** (PS2 Emotion Engine, PSP Allegrex, MIPS32 LE/BE) and **ARM / Thumb** (ARMv4T/ARMv5TE GBA and Nintendo DS, A32, Thumb-1, and Thumb-2 mixed width) engines, and expanded in **0.3.0** with a single-machine brute-force governor, zero-LLM near-miss closer, multi-agent chess-clock work queue, code/single/dual-brain Overseer, and portable agent skills (`CLI-OVERSEER` and `kintoun-match`).
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase. On a held out benchmark of 69 real console functions it starts from raw `m2c` output and reaches 63.6% aligned on average (75% median), with 8 exact matches. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
 ## What makes Kintoun different
 * **Real C only:** Rejects inline assembly, `GLOBAL_ASM`, naked functions, and raw `.long`/`.4byte`/`.word` directives.
 * **Dedicated per-architecture relocation-exact verification (no shallow generic layer):**
-  * **PowerPC (`ppc_elf`):** Strict ELF32 big-endian verifier (`REL24`, `REL14`, `ADDR16_HA`/`LO`, `EMB_SDA21`, `SDAREL16`, DOL + `symbols.txt` and standalone `.o` linking), `m2c` C89 seed repair + `r13`/`r2` SDA & raw `lis+addi` DOL address rebasing (`ppc_seeds`), and all 52 target-instruction-directed Sagas mutations (`mutations.directed`).
+  * **PowerPC (`ppc_elf`):** Strict ELF32 big-endian verifier (`REL24`, `REL14`, `ADDR16_HA`/`LO`, `EMB_SDA21`, `SDAREL16`, DOL + `symbols.txt` and standalone `.o` linking), stdlib disassembler, `m2c` C89 seed repair + `r13`/`r2` SDA & raw `lis+addi` DOL address rebasing (`ppc_seeds`), and all 52 target-instruction-directed mutations (`mutations.directed`).
   * **MIPS (`mips_elf`):** Both `SHT_REL` and `SHT_RELA`, little- and big-endian, paired/multi-`HI16` + orphaned-`LO16` (including `_gp_disp`), `GPREL16`/`GPREL32` + `.reginfo`/`.MIPS.options`/`SceModuleInfo` `$gp` extraction, PSP `ET_SCE_PSP_PRX` (`0xFFA0`) auto-relocation, `26`, `PC16`, `LITERAL`, delay-slot-aware alignment, stdlib disassembler (MIPS I-IV, R5900 EE `lq`/`sq`, Allegrex, COP1), register-class live-range permuter (`$v`, `$a`, `$t`, `$s`, `$f`, `HI`/`LO`), target-instruction-guided mutations (`mips_mutations`), `m2c` seed repairs (`mips_seeds`), and MIPS repair hypotheses.
   * **ARM / Thumb (`arm_elf`):** `$a`/`$t`/`$d` mapping-symbol segmentation, A32 + Thumb-16 + Thumb-2 mixed-width scoring and stdlib disassembly, `SHT_REL` and `SHT_RELA` (`ABS32`, `REL32`, `PC24`, `CALL`, `JUMP24`, `THM_CALL`, `THM_JUMP*`, `MOVW`/`MOVT`, `THM_PC8`/`PC12`), relocation-aware inline literal-pool comparison, Thumb low-register (`r0-r7`) permuter, `$d` literal-pool struct-base rebasing (`arm_seeds`), target-guided ARM/Thumb mutations (`arm_mutations`), and interworking (`BL` vs `BLX`) / Thumb-width repair hypotheses.
 * **Compiler-agnostic presets:** Works with SN ProDG (`prodg-wine`, `pspsnc`), Metrowerks MWCC (GameCube/Wii `mwcc-wine`, PS2 `mwccps2`, PSP `mwccpsp`, and DS `mwccarm`), `ee-gcc` (PS2), `psp-gcc` (PSP), `mips-gcc`, `agbcc` (GBA, with integrated `cpp` preprocessing), `arm-none-eabi-gcc`, `armcc`, or any custom command template in `kintoun.toml` (supports both Wine and `wibo`).
-* **Local SQLite cache & parallel workers:** Zero external daemon or server setup; runs locally on Python 3.11+ standard library.
+* **Out-of-the-box single-machine governor, queue, & Overseer:** Includes a 3-tier cross-process compile governor + zram-aware pressure auto-tuner, surgical `revise_candidate` cache, `$0` diff-classified near-miss closer, SQLite chess-clock multi-agent queue, `kintoun overseer` (`--brain none`, `--brain single`, or `--brain dual`), and `CLI-OVERSEER` / `kintoun-match` agent skills.
 
 ## Quickstart
 
@@ -37,6 +37,15 @@ kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --write
 # Search duration & depth presets / flags:
 #   --quick (15s/250), --thorough (10m/10k), --deep (30m/50k), --until-match, or --time 5m --workers 8
 kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --thorough --workers 8 --write
+
+# Fast plain-C check, ~1.5k-token context pack, and zero-LLM diff-classified near-miss closer:
+kintoun check --func MyClass__MyFunc
+kintoun context --func MyClass__MyFunc
+kintoun close src/MyClass/MyFunc.c --func MyClass__MyFunc --write
+
+# Multi-agent queue & out-of-the-box overseer ($0 code-only, single-API, or dual-API brain):
+kintoun queue init && kintoun queue status
+kintoun overseer once --brain none
 ```
 
 ## Plugging into `dbzsagas-decomp`
@@ -53,12 +62,15 @@ kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
 * [docs/USAGE.md](docs/USAGE.md) - a full matching session: setup, verify, permute, search length, reading results, MCP
 * [docs/ARCHITECTURES.md](docs/ARCHITECTURES.md) - what each engine (PowerPC, MIPS, ARM and Thumb) reads, links, scores and repairs
 * [docs/BENCHMARKS.md](docs/BENCHMARKS.md) - held out benchmark results by platform and compiler
+* [docs/WORKFLOWS.md](docs/WORKFLOWS.md) - single-machine governor, Wine warmer, near-miss closer, multi-agent queue, and single/dual-brain Overseer
 * [CHANGELOG.md](CHANGELOG.md) - what changed in each version
-* [docs/CONFIG.md](docs/CONFIG.md) - `kintoun.toml` schema and per-architecture options
+* [docs/CONFIG.md](docs/CONFIG.md) - `kintoun.toml` schema, governor, and `[overseer]` options
 * [docs/COMPILERS.md](docs/COMPILERS.md) - Setting up ProDG, MWCC, `ee-gcc`, `psp-gcc`, `mips-gcc`, `agbcc`, `arm-none-eabi-gcc`, and `mwccarm`
+* [skills/CLI-OVERSEER/SKILL.md](skills/CLI-OVERSEER/SKILL.md) - orchestrator skill delegating to Matcher and Namer subagents
+* [skills/kintoun-match/SKILL.md](skills/kintoun-match/SKILL.md) - matcher skill & PowerPC / MIPS / ARM symptom-to-C lookup tables
 
 ## MCP server
-An optional MCP server exposes Kintoun's `verify`, `permute`, and `info` commands as MCP tools. Install the optional extra, then start the server:
+An optional MCP server exposes 14 Kintoun tools (`verify`, `permute`, `info`, `check`, `context_pack`, `score_candidate`, `revise_candidate`, `score_candidates`, `close_near_miss`, `claim_next`, `clock`, `submit_match`, `fail_claim`, and `queue_status`). Install the optional extra, then start the server:
 
 ```bash
 pip install -e ".[mcp]"

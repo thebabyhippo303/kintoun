@@ -57,6 +57,27 @@ strategies = ["systematic", "register_focus", "random"]
 cache_dir = ".kintoun/cache"
 priors_file = ""         # optional JSON file mapping mutation family -> weight
 forbid_asm = true        # enforce pure C (reject inline asm / raw data)
+shared_governor = false  # true = coordinate compile slots across processes on one machine
+
+# Optional fleet supervisor configuration (`kintoun overseer`):
+[overseer]
+brain_mode = "none"      # "none" ($0 code-only), "single" (one API), or "dual" (fast + main)
+daily_budget_usd = 2.0
+cycle_s = 60.0
+auto_close_near_misses = true
+tmux_sessions = []       # optional managed tmux worker session names
+
+[overseer.main_brain]
+provider = "openai"      # "openai", "openai-compatible" (Ollama/vLLM/OpenRouter), "anthropic", "gemini"
+model = "gpt-4o-mini"
+api_key_env = "OPENAI_API_KEY"
+base_url = ""            # optional custom endpoint URL
+
+# Optional second endpoint used only when brain_mode = "dual":
+# [overseer.fast_brain]
+# provider = "openai-compatible"
+# model = "qwen2.5-coder:7b"
+# base_url = "http://localhost:11434/v1"
 ```
 
 ## Strategies

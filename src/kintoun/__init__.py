@@ -1,2 +1,2 @@
-"""Kintoun: Compiler-agnostic matching-C decompilation permuter and strict verifier."""
-__version__ = "0.2.0"
+"""Kintoun matching-C decompilation permuter & verifier."""
+__version__ = "0.3.0"

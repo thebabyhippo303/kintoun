@@ -78,6 +78,7 @@ class SearchConfig:
     forbid_asm: bool = True
     mode: str = "standard"
     plateau: int = 0
+    shared_governor: bool = False
 
 
 @dataclass
@@ -164,6 +165,7 @@ def load_config(path: Path | None = None) -> KintounConfig:
         forbid_asm=bool(srch_raw.get("forbid_asm", True)),
         mode=mode_name,
         plateau=int(srch_raw.get("plateau", 0)),
+        shared_governor=bool(srch_raw.get("shared_governor", False)),
     )
     return KintounConfig(
         root=root,
