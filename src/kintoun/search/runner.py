@@ -38,7 +38,7 @@ STRATEGIES = (
 
 # Pure C-to-C scheduling, memory, switch, and recovery transforms from `mutations_*.py`
 # usable across PowerPC, MIPS, and ARM/Thumb.
-_TEXT_SAGAS_FAMILIES = (
+_TEXT_C_SHAPE_FAMILIES = (
     mutations.m_index_address,
     mutations.m_narrow_return,
     mutations.m_extern_const,
@@ -69,7 +69,7 @@ _TEXT_SAGAS_FAMILIES = (
     mutations.m_fmem_hop,
 )
 
-_FLOAT_SAGAS_FAMILIES = (
+_FLOAT_C_SHAPE_FAMILIES = (
     mutations.m_fma_negate,
     mutations.m_fneg_intro,
     mutations.m_fneg_zero,
@@ -117,12 +117,12 @@ class _PpcBookProxy:
         raise ValueError(name)
 
 
-def _iter_sagas_c_families(source: str, hoist_c89: bool = False):
+def _iter_c_shape_families(source: str, hoist_c89: bool = False):
     """Yield cross-architecture C-to-C scheduling, switch, memory, and FP variants."""
     from kintoun.search import mips_seeds
 
     has_fp = bool(re.search(r"\b(?:f32|f64|float|double)\b", source))
-    fams = _TEXT_SAGAS_FAMILIES + (_FLOAT_SAGAS_FAMILIES if has_fp else ())
+    fams = _TEXT_C_SHAPE_FAMILIES + (_FLOAT_C_SHAPE_FAMILIES if has_fp else ())
     for fn in fams:
         try:
             for family, text in fn(source):
@@ -267,9 +267,9 @@ def generate_proposals(
                 if len(outputs) >= max_items:
                     return outputs
 
-    # 5. Full extended Sagas C-shape & floating-point mutation families
+    # 5. Full extended C-shape & floating-point mutation families
     if "systematic" in chosen or "random" in chosen:
-        for family, text in _iter_sagas_c_families(source, hoist_c89=True):
+        for family, text in _iter_c_shape_families(source, hoist_c89=True):
             if text in seen:
                 continue
             seen.add(text)
@@ -534,9 +534,9 @@ def _generate_arch_proposals(
                 if len(outputs) >= max_items:
                     return outputs
 
-    # 4. Full cross-architecture Sagas C-shape & floating-point mutations
+    # 4. Full cross-architecture C-shape & floating-point mutations
     if "systematic" in chosen or "random" in chosen:
-        for family, text in _iter_sagas_c_families(source, hoist_c89=True):
+        for family, text in _iter_c_shape_families(source, hoist_c89=True):
             if text in seen:
                 continue
             seen.add(text)
@@ -621,7 +621,7 @@ def _generate_multistep_batch(
 
     if not beam:
         return []
-    all_fams = list(base_mutations.FAMILIES) + list(_TEXT_SAGAS_FAMILIES)
+    all_fams = list(base_mutations.FAMILIES) + list(_TEXT_C_SHAPE_FAMILIES)
     out: list[tuple[str, str]] = []
     attempts = 0
     max_attempts = batch_size * 4

@@ -421,7 +421,7 @@ def fold_thumb_shift_casts(text: str) -> str | None:
 def arm_dma_flush_reads(text: str, target_items: list[ArmItem] | None) -> str | None:
     """Recover Nintendo AGB SDK `DmaCopy`/`DmaFill` pipeline-flush dummy reads (`ldr rX, [rDMA, #8]`).
 
-    On GBA (`AZJE70`, `BDBE70`), official `DmaSet` macros emit `*(vu32 *)REG_DMAxCNT = ctrl; *(vu32 *)REG_DMAxCNT;`
+    On GBA, the AGB SDK `DmaSet` macros emit `*(vu32 *)REG_DMAxCNT = ctrl; *(vu32 *)REG_DMAxCNT;`
     (an unused volatile load from `+8` right after writing DMA control). `m2c` drops the unused volatile read!
     """
     if not target_items or "0x040000" not in text:
@@ -545,7 +545,7 @@ def arm_seed_variants(
                 yield from _emit("arm_pool_plus_struct", ensure_arm_prelude(reb_synth))
         yield from _emit("arm_label_rebase", arm_label_rebase(source, objects or {}, target_items))
         yield from _emit("arm_dma_flush", arm_dma_flush_reads(source, target_items))
-        # Compose `or_merge` + `raw_pool_rebase` (exact GBA `AZJE70` pattern!)
+        # Compose `or_merge` + `raw_pool_rebase` (a common agbcc pattern)
         merged = mips_seeds.mips_shortcircuit_or_merge(source)
         if merged:
             yield from _emit("arm_or_plus_pool_rebase", arm_raw_pool_rebase(merged, target_items))

@@ -4,6 +4,8 @@
 
 Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)) and expanded in **0.2.0** with dedicated first-class **MIPS** (PS2 Emotion Engine, PSP Allegrex, MIPS32 LE/BE) and **ARM / Thumb** (ARMv4T/ARMv5TE GBA and Nintendo DS, A32, Thumb-1, and Thumb-2 mixed width) engines.
 
+Kintoun has been trained through research and development on TNRP's 15 game codebase. On a held out benchmark of 69 real console functions it starts from raw `m2c` output and reaches 63.6% aligned on average (75% median), with 8 exact matches. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+
 ## What makes Kintoun different
 * **Real C only:** Rejects inline assembly, `GLOBAL_ASM`, naked functions, and raw `.long`/`.4byte`/`.word` directives.
 * **Dedicated per-architecture relocation-exact verification (no shallow generic layer):**
@@ -48,6 +50,10 @@ kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
 ```
 
 ## Documentation
+* [docs/USAGE.md](docs/USAGE.md) - a full matching session: setup, verify, permute, search length, reading results, MCP
+* [docs/ARCHITECTURES.md](docs/ARCHITECTURES.md) - what each engine (PowerPC, MIPS, ARM and Thumb) reads, links, scores and repairs
+* [docs/BENCHMARKS.md](docs/BENCHMARKS.md) - held out benchmark results by platform and compiler
+* [CHANGELOG.md](CHANGELOG.md) - what changed in each version
 * [docs/CONFIG.md](docs/CONFIG.md) - `kintoun.toml` schema and per-architecture options
 * [docs/COMPILERS.md](docs/COMPILERS.md) - Setting up ProDG, MWCC, `ee-gcc`, `psp-gcc`, `mips-gcc`, `agbcc`, `arm-none-eabi-gcc`, and `mwccarm`
 

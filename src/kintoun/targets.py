@@ -63,7 +63,7 @@ class TargetContext:
             va, size = self.funcs[spec]
             is_th = self.thumb or (va in self.thumb_addrs)
             return TargetFunction(spec, va, size, self.read(va, size), is_thumb=is_th)
-        # Support `0xADDR:0xSIZE` or `0xADDR+0xSIZE` direct slice syntax on stripped retail binaries!
+        # Support `0xADDR:0xSIZE` or `0xADDR+0xSIZE` direct slice syntax on stripped binaries.
         if ":" in spec or "+" in spec:
             sep = ":" if ":" in spec else "+"
             left, right = spec.split(sep, 1)

@@ -1,6 +1,6 @@
 """Real-world PowerPC / GameCube (`prodg-wine`, `mwcc-wine`) seed repairs and DOL rebasing.
 
-Applies the proven real-game decompiler seed pipeline to PowerPC (`m2c` / `dtk` / blind DOL):
+Applies the decompiler seed pipeline to PowerPC (`m2c` / `dtk` / blind DOL):
 - Self-contained C89/ProDG/MWCC prelude (`s8..u64`, `f32`, `f64`, `M2C_UNK`, `M2C_FIELD`, C89 `M2C_BITWISE`);
 - Repair of raw `m2c` pseudo-C (`M2C_ERROR`, `?` types, `*(void *)`, `void *` arithmetic, pointer+pointer offsets, integer-expression dereferences, float/pointer field clashes, and strict C89 declaration hoisting);
 - `r13` (`_SDA_BASE_`) and `r2` (`_SDA2_BASE_`) `saved_reg_r13` / `saved_reg_r2` small-data symbol resolution;
@@ -330,7 +330,7 @@ def ppc_seed_variants(
     target_fn: Any,
     ctx: Any,
 ) -> Iterator[tuple[str, str]]:
-    """Yield GameCube / PowerPC seed expansions modeled on MIPS + Sagas seeds."""
+    """Yield GameCube / PowerPC seed expansions modeled on the MIPS seeds."""
     if target_fn is None or not getattr(target_fn, "data", b""):
         return
     target_words = ppc_score.words_be(target_fn.data)
@@ -366,7 +366,7 @@ def ppc_seed_variants(
     if _target_uses_single_fp_only(target_words):
         yield from _emit("ppc_single_floats", mips_single_float_literals(base_src, target_words))
 
-    # 4. Sagas PowerPC seeds (`compose`, `lit16_sign`, `i2f_magic`, `abs_symbols`, `abs_functions`, `rebase_fields`, etc.)
+    # 4. PowerPC seeds (`compose`, `lit16_sign`, `i2f_magic`, `abs_symbols`, `abs_functions`, `rebase_fields`, etc.)
     if objs:
         yield from _emit("ppc_compose", ppc_base_seeds.compose(base_src, objs, target_words))
         yield from _emit("ppc_abs_symbols", ppc_base_seeds.abs_symbols(base_src, objs))
