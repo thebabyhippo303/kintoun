@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kintoun"
-version = "0.7.0"
+version = "0.8.0"
 description = "Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF32 verifier for PowerPC, MIPS, and ARM."
 readme = "README.md"
 license = {text = "GPL-3.0-or-later"}

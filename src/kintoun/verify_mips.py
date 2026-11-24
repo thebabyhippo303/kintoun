@@ -137,13 +137,31 @@ def verify_mips_source(
                 result["_unresolved"] = {str(k): v for k, v in _unknown.items()}
         if not result["verified"]:
             sc_linked = mips_score.score_mips(linked_words, target_words)
+            diff_txt = sc_linked.diff(lines, base_va=target_fn.va) if lines else ""
+            if lines and not diff_txt and len(linked_words) == len(target_words):
+                from kintoun.arch.mips_disasm import disasm_mips_word
+
+                raw_diffs: list[str] = []
+                for idx_w, (ow, tw) in enumerate(zip(linked_words, target_words)):
+                    if ow != tw:
+                        pc = target_fn.va + idx_w * 4
+                        omn, oops = disasm_mips_word(ow, pc)
+                        tmn, tops = disasm_mips_word(tw, pc)
+                        raw_diffs.append(
+                            f"! {pc:08X}: {omn} {oops}".rstrip()
+                            + f"  !=  {tmn} {tops}".rstrip()
+                            + f"  (0x{ow:08X} vs 0x{tw:08X})"
+                        )
+                        if len(raw_diffs) >= lines:
+                            break
+                diff_txt = "\n".join(raw_diffs)
             result["search"] = {
                 "normalized_pct": sc_linked.pct,
                 "aligned_pct": sc_linked.apct,
                 "total": sc_linked.total,
                 "mism": sc_linked.mism,
                 "hints": sc_linked.hints,
-                "diff": sc_linked.diff(lines, base_va=target_fn.va) if lines else "",
+                "diff": diff_txt,
             }
             if in_search and sc_linked.delay_swaps:
                 result["_delay_swaps"] = sc_linked.delay_swaps

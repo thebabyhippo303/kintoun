@@ -195,6 +195,23 @@ def verify_source(
             result["_ours_words"] = linked_words
             result["_ops"] = getattr(sc, "ops", None)
         if not result["verified"]:
+            if lines and not result["search"]["diff"] and len(linked_words) == len(target_words):
+                from kintoun.arch.ppc_disasm import disasm_ppc_word
+
+                raw_diffs: list[str] = []
+                for idx_w, (ow, tw) in enumerate(zip(linked_words, target_words)):
+                    if ow != tw:
+                        pc = target_fn.va + idx_w * 4
+                        omn, oops = disasm_ppc_word(ow, pc)
+                        tmn, tops = disasm_ppc_word(tw, pc)
+                        raw_diffs.append(
+                            f"! {pc:08X}: {omn} {oops}".rstrip()
+                            + f"  !=  {tmn} {tops}".rstrip()
+                            + f"  (0x{ow:08X} vs 0x{tw:08X})"
+                        )
+                        if len(raw_diffs) >= lines:
+                            break
+                result["search"]["diff"] = "\n".join(raw_diffs)
             all_repairs = repair_mod.hypotheses(
                 linked_words,
                 target_words,

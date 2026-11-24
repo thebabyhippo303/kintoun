@@ -263,6 +263,9 @@ def _decode_mips_features(target_fn: TargetFunction, ctx: TargetContext) -> dict
         elif op in (18, 50, 54, 58, 62):  # COP2 / VU0 / VFPU
             feats["vector_ops"] += 1
             blockers.append(f"MIPS COP2/VFPU/VU0 ({mn}) at +0x{idx * 4:X}")
+        elif mn == ".word":  # Undecoded R5900 MMI SIMD / custom opcode
+            feats["vector_ops"] += 1
+            blockers.append(f"MIPS SIMD/unknown word 0x{w:08X} at +0x{idx * 4:X}")
         elif op == 47:  # cache
             feats["cache_ops"] += 1
             blockers.append(f"MIPS cache op at +0x{idx * 4:X}")

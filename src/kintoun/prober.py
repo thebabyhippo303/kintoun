@@ -71,8 +71,8 @@ PRESET_FLAG_MATRICES: dict[str, list[list[str]]] = {
         ["-O4,s", "-nodefaults", "-c"],
         ["-O3,p", "-nodefaults", "-c"],
         ["-O2", "-nodefaults", "-c"],
-        ["-O4,p", "-sdata", "8", "-nodefaults", "-c"],
-        ["-O4,p", "-sdata", "0", "-nodefaults", "-c"],
+        ["-O4,p", "-sdatathreshold", "8", "-nodefaults", "-c"],
+        ["-O4,p", "-sdatathreshold", "0", "-nodefaults", "-c"],
     ],
     "mwccpsp": [
         ["-O4,p", "-nodefaults", "-c"],

@@ -801,6 +801,100 @@ def cmd_bench(args: argparse.Namespace) -> int:
     return 0 if rep.get("promotion_eligible", True) else 1
 
 
+def cmd_agent_bench(args: argparse.Namespace) -> int:
+    from kintoun.agent_bench import (
+        load_results_jsonl,
+        render_agent_bench_markdown,
+        run_agent_benchmark,
+        select_agent_benchmark,
+        summarize_agent_benchmark,
+    )
+
+    if args.action == "select":
+        cfg = load_config(Path(args.config) if args.config else None)
+        ctx = load_target_from_config(cfg)
+        va_min = int(args.va_min, 0) if args.va_min else 0
+        va_max = int(args.va_max, 0) if args.va_max else 0xFFFFFFFF
+        doc = select_agent_benchmark(
+            ctx,
+            count=args.count,
+            seed=args.seed,
+            configured_preset=cfg.compiler.preset,
+            va_min=va_min,
+            va_max=va_max,
+            exclude_switches=not args.include_switches,
+        )
+        out_p = Path(args.output or "bench_manifest_60.json")
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        out_p.write_text(json.dumps(doc, indent=2), encoding="utf-8")
+        if args.json:
+            print(json.dumps(doc, indent=2))
+        else:
+            print(
+                f"Selected {doc['selected_count']} stratified plain-C functions -> {out_p}\n"
+                f"  By size tier: {doc['by_size_tier']}\n"
+                f"  By family:    {doc['by_family']}"
+            )
+        return 0
+
+    if args.action == "run":
+        if not args.manifest:
+            raise ValueError("`kintoun agent-bench run` requires --manifest <manifest.json>")
+        cfg = load_config(Path(args.config) if args.config else None)
+        out_dir = Path(args.out_dir or ".kintoun/agent_bench")
+        only = {s.strip() for s in args.only.split(",") if s.strip()} if args.only else None
+        summary = run_agent_benchmark(
+            cfg,
+            Path(args.manifest),
+            out_dir,
+            runner=args.runner,
+            model=args.model,
+            effort=args.effort,
+            agent_bin=args.agent_bin or "",
+            custom_template=args.agent_cmd or "",
+            per_func_timeout_s=parse_duration_s(args.timeout, 1800.0),
+            concurrency=args.concurrency,
+            with_headless_baseline=not args.no_headless_baseline,
+            headless_budget_s=parse_duration_s(args.headless_budget, 30.0),
+            headless_max_candidates=args.headless_max_candidates,
+            limit=args.limit,
+            only_funcs=only,
+            resume=not args.no_resume,
+            kintoun_cmd=args.kintoun_cmd or "",
+        )
+        md = render_agent_bench_markdown(summary, title=args.title)
+        (out_dir / "REPORT.md").write_text(md, encoding="utf-8")
+        if args.output:
+            Path(args.output).write_text(md, encoding="utf-8")
+        if args.json:
+            print(json.dumps(summary, indent=2))
+        else:
+            print(md)
+        return 0
+
+    # `report`: render Markdown/JSON summary from an existing `results.jsonl` or `summary.json`
+    src_p = Path(args.results or (Path(args.out_dir or ".kintoun/agent_bench") / "results.jsonl"))
+    if src_p.suffix == ".json":
+        summary = json.loads(src_p.read_text(encoding="utf-8"))
+    else:
+        rows = load_results_jsonl(src_p)
+        summary = summarize_agent_benchmark(
+            rows,
+            runner=args.runner,
+            model=args.model,
+            effort=args.effort,
+            per_func_timeout_s=parse_duration_s(args.timeout, 1800.0),
+        )
+    md = render_agent_bench_markdown(summary, title=args.title)
+    if args.output:
+        Path(args.output).write_text(md, encoding="utf-8")
+    if args.json:
+        print(json.dumps(summary, indent=2))
+    else:
+        print(md)
+    return 0
+
+
 def cmd_probe_flags(args: argparse.Namespace) -> int:
     from kintoun.prober import probe_compiler_flags
 
@@ -1275,6 +1369,38 @@ def build_parser() -> argparse.ArgumentParser:
     p_bn.add_argument("--out", help="Write benchmark report JSON to path.")
     p_bn.add_argument("--learn-priors", help="Write updated mutation-family priors JSON to path.")
     p_bn.set_defaults(func_cb=cmd_bench)
+
+    p_ab = sub.add_parser(
+        "agent-bench",
+        help="Stratified 60-function zero-prior-context CLI agent benchmark (select, run, report).",
+    )
+    p_ab.add_argument("action", choices=["select", "run", "report"], help="Benchmark action.")
+    p_ab.add_argument("--manifest", help="Path to stratified JSON manifest (for `run`).")
+    p_ab.add_argument("--out-dir", help="Output directory for `results.jsonl`, `logs/`, and `best/`.")
+    p_ab.add_argument("--results", help="Path to `results.jsonl` or `summary.json` (for `report`).")
+    p_ab.add_argument("-o", "--output", help="Output path (`manifest.json` for `select`, `REPORT.md` for `run`/`report`).")
+    p_ab.add_argument("--count", type=int, default=60, help="Number of stratified functions to select (default 60).")
+    p_ab.add_argument("--seed", type=int, default=20261124, help="Deterministic RNG seed for `select`.")
+    p_ab.add_argument("--va-min", help="Optional minimum virtual address (hex) for `select`.")
+    p_ab.add_argument("--va-max", help="Optional maximum virtual address (hex) for `select`.")
+    p_ab.add_argument("--include-switches", action="store_true", help="Include jump-table switch functions in `select`.")
+    p_ab.add_argument("--runner", choices=["agy", "claude", "codex", "custom"], default="agy", help="Agent CLI runner.")
+    p_ab.add_argument("--model", default="gemini-4-neon-high", help="Agent model identifier (default gemini-4-neon-high).")
+    p_ab.add_argument("--effort", default="high", help="Reasoning effort level (default high).")
+    p_ab.add_argument("--agent-bin", help="Override path to agent CLI binary.")
+    p_ab.add_argument("--agent-cmd", help="Custom command template with {prompt}, {func}, {addr}, {workspace}, {timeout_s}.")
+    p_ab.add_argument("--kintoun-cmd", help="Override kintoun CLI command advertised inside zero-context prompt.")
+    p_ab.add_argument("--timeout", default="30m", help="Per-function wall-clock time limit (default 30m / 1800s).")
+    p_ab.add_argument("--concurrency", type=int, default=1, help="Number of isolated functions to benchmark concurrently.")
+    p_ab.add_argument("--no-headless-baseline", action="store_true", help="Skip 30s headless `kintoun permute` baseline pass.")
+    p_ab.add_argument("--headless-budget", default="30s", help="Headless baseline budget per function (default 30s).")
+    p_ab.add_argument("--headless-max-candidates", type=int, default=300, help="Headless baseline max candidates (default 300).")
+    p_ab.add_argument("--limit", type=int, default=0, help="Evaluate only the first N manifest entries (0 = all).")
+    p_ab.add_argument("--only", help="Comma-separated function names to run.")
+    p_ab.add_argument("--no-resume", action="store_true", help="Ignore existing `results.jsonl` entries.")
+    p_ab.add_argument("--title", default="Zero-Context Agent Benchmark", help="Markdown report title.")
+    p_ab.add_argument("--json", action="store_true", help="Emit JSON output.")
+    p_ab.set_defaults(func_cb=cmd_agent_bench)
 
     p_pf = sub.add_parser("probe-flags", help="Test a candidate C file across compiler flag matrices to find optimal TU flags.")
     p_pf.add_argument("source", help="Path to candidate .c file.")

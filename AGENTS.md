@@ -1,6 +1,6 @@
 # AGENTS.md - Kintoun Setup, Workflow, and Maintenance Guide for AI Agents
 
-**Current Version:** `0.7.0` (keep this file updated alongside `pyproject.toml`, `src/kintoun/__init__.py`, and `CHANGELOG.md` on every release).
+**Current Version:** `0.8.0` (keep this file updated alongside `pyproject.toml`, `src/kintoun/__init__.py`, and `CHANGELOG.md` on every release).
 
 This guide is written for AI coding agents (Claude Code, Codex CLI, Gemini CLI, OpenCode, Cursor, etc.) when a user asks you to **set up Kintoun on their decompilation repository**, **match or name functions**, or **extend Kintoun itself**.
 
@@ -94,6 +94,7 @@ If the user's client supports MCP, register `kintoun mcp` (run from the decomp r
 | **Unattended supervisor with $0 API cost** | `kintoun overseer loop --brain none` (reaps expired clocks, quarantines 2x low-% duds, auto-tunes pressure, runs zero-AI `close` on `>= 85%` near-misses) |
 | **Unattended supervisor with 1 API or local Ollama** | `kintoun overseer loop --brain single --provider openai --model gpt-4o-mini --budget-usd 1.50` (or `--provider openai-compatible --base-url http://localhost:11434/v1 --model qwen2.5-coder:14b`) |
 | **Unattended supervisor with 2 models/APIs** | Configure `[overseer]` (`brain_mode = "dual"`), `[overseer.fast_brain]`, and `[overseer.main_brain]` in `kintoun.toml`, then run `kintoun overseer loop` |
+| **Zero-prior-context public agent benchmark (60 functions)** | `kintoun agent-bench select --count 60 -o manifest_60.json` -> `kintoun agent-bench run --manifest manifest_60.json --runner agy --model gemini-4-neon-high --effort high --timeout 30m` |
 
 ---
 
@@ -115,7 +116,7 @@ If the user's client supports MCP, register `kintoun mcp` (run from the decomp r
 - `src/kintoun/candidates.py` - `cand_<12hex>` candidate store, negative compile-error cache, `revise`, and `score_batch`.
 - `src/kintoun/inspect_fn.py`, `xref.py`, `constants.py`, `compiler_id.py`, `similarity.py` & `closer.py` - Blocker & wrong-compiler `check`, static + logistic-calibrated difficulty scorer, `context_pack` (with TF-IDF opcode-bigram similar matched C functions, incoming callers/vtables, struct-offset consensus, inlined-helper detection, bit-exact `.rodata` floats, and magic-division inversion), and 7-class zero-AI near-miss closer.
 - `src/kintoun/macros.py`, `project_io.py`, `autoconfig.py`, `cleaner.py`, `watch.py`, `synth.py`, `doctor.py`, `dataset.py`, `atlas.py`, `prober.py` & `scratch.py` - Pure-stdlib `KINTOUN_*` permutation macros (with `PERM_*` aliases) + beam-search hybrid, zero-config `objdiff.json`/`dtk`/`splat.yaml` ingestion, byte-verified post-match de-`goto` cleaner (`clean`), live file-save `watch`, factual binary struct/vtable/assert header synthesizer (`synth-headers`), environment `doctor`, verifiable SFT/DPO dataset exporter (`export-dataset`), `INCLUDE_ASM`/`GLOBAL_ASM` `import` & verified `integrate`, single-file HTML Decomp Atlas (`atlas`), `probe-flags`, and `decomp.me` `scratch`.
-- `src/kintoun/queue.py`, `overseer.py`, `lab.py`, `engine_lab.py` - SQLite WAL chess-clock work queue, `none`/`single`/`dual`-brain Overseer, benchmark/prior runner, and side-tree self-learning Engine Lab (`kintoun engine`) with blind unseen promotion gating, commit ablation, and 1-command rollback.
+- `src/kintoun/queue.py`, `overseer.py`, `lab.py`, `engine_lab.py`, `agent_bench.py` - SQLite WAL chess-clock work queue, `none`/`single`/`dual`-brain Overseer, benchmark/prior runner, side-tree self-learning Engine Lab (`kintoun engine`) with blind unseen promotion gating, commit ablation, and 1-command rollback, and stratified 60-function zero-prior-context CLI agent benchmark harness (`kintoun agent-bench`).
 - `skills/` & `docs/` - Portable `CLI-OVERSEER`, `ENGINE-BUILDER`, and `kintoun-match` skills plus user documentation.
 
 ### Version Bump Checklist

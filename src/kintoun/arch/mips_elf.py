@@ -817,6 +817,40 @@ def link_mips_function(
     prepared_all = prepare_section_relocs(sec_obj.data, all_sec_relocs, elf.endian)
     fn_relocs = [(rel, eff_add) for rel, eff_add in prepared_all if start <= rel.offset < start + length]
 
+    def _infer_target_section_base(section: MipsSection, sec_idx: int) -> int | None:
+        if not target_bytes:
+            return None
+        align = max(1, section.align)
+        for idx_r, (rel, eff_add) in enumerate(fn_relocs):
+            if rel.symbol.section != sec_idx:
+                continue
+            off = rel.offset - start
+            if off < 0 or off + 4 > len(target_bytes):
+                continue
+            tw = int.from_bytes(target_bytes[off : off + 4], elf.endian)
+            t_addr: int | None = None
+            if rel.kind in ("GPREL16", "LITERAL") and gp:
+                if ((tw >> 21) & 0x1F) == 28:
+                    t_addr = (gp + _s16(tw & 0xFFFF)) & 0xFFFFFFFF
+            elif rel.kind in _HI16_KINDS:
+                want_lo = _HI_TO_LO[rel.kind]
+                for rel2, eff2 in fn_relocs[idx_r + 1 :]:
+                    if rel2.kind == want_lo and rel2.symbol.index == rel.symbol.index and eff2 == eff_add:
+                        off2 = rel2.offset - start
+                        if 0 <= off2 and off2 + 4 <= len(target_bytes):
+                            tw_lo = int.from_bytes(target_bytes[off2 : off2 + 4], elf.endian)
+                            t_addr = (((tw & 0xFFFF) << 16) + _s16(tw_lo & 0xFFFF)) & 0xFFFFFFFF
+                        break
+            if t_addr is not None:
+                cand_base = (t_addr - rel.symbol.value - eff_add) & 0xFFFFFFFF
+                if cand_base % align == 0:
+                    try:
+                        if read_mem(cand_base, section.size) == section.data:
+                            return cand_base
+                    except Exception:
+                        pass
+        return None
+
     def resolve_section(section: MipsSection, idx: int) -> tuple[int, str]:
         if elf.relocations(idx):
             raise ValueError(f"{section.name}: relocated local data requires full linker support")
@@ -833,6 +867,12 @@ def link_mips_function(
             try:
                 base = _locate_readonly(section, data_segments)
             except ValueError as error:
+                if "ambiguous constant placement" in str(error) or "too many constant placements" in str(error):
+                    inferred = _infer_target_section_base(section, idx)
+                    if inferred is not None:
+                        if placement_cache is not None:
+                            placement_cache[key] = inferred
+                        return inferred, "target-instruction address, content verified"
                 if placement_cache is not None:
                     placement_cache[key] = str(error)
                 raise

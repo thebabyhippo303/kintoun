@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.0
+
+Kintoun has been trained through research and development on TNRP's 15 game codebase.
+
+### Stratified 60 function zero prior context agent benchmark (`kintoun agent-bench`)
+* **Stratified 5 size tier x 6 structural family selector (`agent_bench.py`, `kintoun agent-bench select`):** Deterministically samples plain C functions (default 60: 12 per byte size tier across `tiny_24_64B`, `small_68_136B`, `medium_140_260B`, `large_264_480B` and `xlarge_484_960B`, balanced across `leaf_int`, `branch_guard`, `loop`, `float_fpu`, `call_chain` and `vtable_dispatch`) with `shape_hash` deduplication and MIPS SIMD/MMI `.word` blocker filtering.
+* **Zero prior context per function CLI agent runner (`kintoun agent-bench run/report`):** Spawns a fresh isolated temporary workspace per function containing only `kintoun.toml`, anonymous hex symbols (`fn_XXXXXXXX` / `D_XXXXXXXX`), `skills/kintoun-match/` and the starting `cand.c` seed, with built in presets for `agy` (`--model gemini-4-neon-high --effort high --new-project --print-timeout 1800s`), `claude`, `codex` and custom commands. Enforces a hard per function wall clock limit (default 30 minutes), recovers the top ranked valid real C candidate from `candidates.sqlite3` or `trajectories.jsonl` if a run times out mid edit, independently audits every output via `verify_source(..., forbid_asm=True)`, and renders clean GitHub Markdown tables (`docs/BENCHMARKS.md`).
+
+### MIPS verifier, R5900 `mwccps2` guidance and cache hardening
+* **Target evidenced MIPS local constant placement and exact linked byte diff (`mips_elf.py`, `verify_mips.py`, `verify.py`, `prober.py`):** When a compiled `.rodata` or `.sdata` literal section matches multiple locations in a full game ELF, `link_mips_function` infers the candidate section base from the target instruction's `$gp` or `HI16`/`LO16` operand and strictly verifies alignment and byte exact section content in memory; when normalized alignment is `100.0%` yet `different_bytes > 0`, `verify` now prints the exact linked instruction byte differences, and `probe-flags` uses `-sdatathreshold` on `mwccps2`.
+* **MIPS `mwccps2` / R5900 EE reference and SIMD check (`skills/kintoun-match/references/mips.md`, `inspect_fn.py`):** Documents `mwccps2` `sd`/`ld` + `sq`/`lq` stack frame idioms, `daddu` vs `addu` 32/64 bit integer rules, R5900 `mula.s` + `madd.s` accumulator FMA and C++ vtable descriptors, and flags undecoded R5900 MMI `.word` instructions in `kintoun check`.
+* **SQLite `ResultCache` descriptor fix (`cache.py`):** Closes SQLite WAL connections deterministically on every `get`/`put` context exit so large multi function `bench` and `agent-bench` runs never exhaust process file descriptors.
+
 ## 0.7.0
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase.
