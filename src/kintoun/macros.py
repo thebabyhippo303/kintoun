@@ -1,17 +1,20 @@
-"""Parametric user permutation macro DSL (`PERM_*` and `KINTOUN_*`) in pure Python stdlib.
+"""Kintoun permutation macros (`KINTOUN_*`) in pure Python stdlib.
 
-Provides a zero-dependency superset of `decomp-permuter`'s inline C permutation macros without
-requiring `cpp`, `pycparser`, or `PLY`, and feeds top-scoring macro expansions directly into
-Kintoun's multi-step beam search and register permuter:
+Mark uncertain spots in candidate C with `KINTOUN_*` macros; Kintoun expands the macro space
+without `cpp` or a C parser and feeds the best expansions into its beam search and register
+permuter. The `PERM_*` names used by decomp-permuter are accepted as aliases, so existing
+annotated files work unchanged.
 
-Supported macros (both `PERM_*` and `KINTOUN_*` prefixes):
-  - `PERM_GENERAL(alt1, alt2, ...)` / `KINTOUN_ALT(...)`: choose one C snippet alternative.
-  - `PERM_INT(lo, hi)` / `KINTOUN_INT(lo, hi)`: integer literal in `[lo, hi]` inclusive.
-  - `PERM_LINESWAP(lines...)` / `KINTOUN_LINESWAP(...)`: permute statement lines inside the block.
-  - `PERM_ONCE([key,] code)` / `KINTOUN_ONCE(...)`: emit `code` at exactly one site sharing `key`.
-  - `PERM_VAR(name, val)` + `PERM_VAR(name)`: bind `name` once and substitute consistently everywhere.
-  - `PERM_SAMELINE(code)` / `PERM_FORCE_SAMELINE(code)`: collapse internal newlines onto one line.
-  - `PERM_RANDOMIZE(code)` / `PERM_IGNORE(code)`: drop-in compatibility wrappers unwrapping `code`.
+Macros (`KINTOUN_*` name, then the accepted `PERM_*` alias):
+  - `KINTOUN_ALT(alt1, alt2, ...)` (also `KINTOUN_GENERAL`; alias `PERM_GENERAL`): choose one C snippet.
+  - `KINTOUN_INT(lo, hi)` (alias `PERM_INT`): integer literal in `[lo, hi]` inclusive.
+  - `KINTOUN_LINESWAP(lines...)` (alias `PERM_LINESWAP`): permute statement lines inside the block.
+  - `KINTOUN_ONCE([key,] code)` (alias `PERM_ONCE`): emit `code` at exactly one site sharing `key`.
+  - `KINTOUN_VAR(name, val)` + `KINTOUN_VAR(name)` (alias `PERM_VAR`): bind `name` once, substitute everywhere.
+  - `KINTOUN_SAMELINE(code)` / `KINTOUN_FORCE_SAMELINE(code)` (aliases `PERM_SAMELINE` / `PERM_FORCE_SAMELINE`):
+    collapse internal newlines onto one line.
+  - `KINTOUN_RANDOMIZE(code)` / `KINTOUN_IGNORE(code)` (aliases `PERM_RANDOMIZE` / `PERM_IGNORE`):
+    wrappers that unwrap `code`.
   - Escaped commas inside macro arguments: write `(,)` to emit a literal `,` without splitting args.
 """
 from __future__ import annotations
@@ -41,6 +44,8 @@ _MACRO_NAMES = frozenset(
         "KINTOUN_ONCE",
         "KINTOUN_VAR",
         "KINTOUN_SAMELINE",
+        "KINTOUN_FORCE_SAMELINE",
+        "KINTOUN_RANDOMIZE",
         "KINTOUN_IGNORE",
     }
 )
@@ -293,10 +298,10 @@ def _preprocess_deterministic_wrappers(text: str) -> str:
     cur = 0
     for c in calls:
         out.append(text[cur : c.start])
-        if c.name in ("PERM_RANDOMIZE", "PERM_IGNORE", "KINTOUN_IGNORE"):
+        if c.name in ("PERM_RANDOMIZE", "PERM_IGNORE", "KINTOUN_RANDOMIZE", "KINTOUN_IGNORE"):
             inner = ",".join(c.args)
             out.append(_preprocess_deterministic_wrappers(inner))
-        elif c.name in ("PERM_SAMELINE", "PERM_FORCE_SAMELINE", "KINTOUN_SAMELINE"):
+        elif c.name in ("PERM_SAMELINE", "PERM_FORCE_SAMELINE", "KINTOUN_SAMELINE", "KINTOUN_FORCE_SAMELINE"):
             inner = _preprocess_deterministic_wrappers(",".join(c.args))
             out.append(_collapse_sameline(inner))
         else:

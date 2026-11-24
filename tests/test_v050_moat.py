@@ -2,7 +2,7 @@
   1. Pure-stdlib `PERM_*` / `KINTOUN_*` parametric macro DSL + beam-search hybrid (`macros.py`, `runner.py`)
   2. Linker `.map` parser, `compile_commands.json`/`build.ninja` flag discovery, header slicer,
      `INCLUDE_ASM`/`GLOBAL_ASM` importer, and atomic full-TU verified integrator (`project_io.py`)
-  3. Zero-Torch per-ISA opcode-bigram TF-IDF similarity + L2 logistic match model (`similarity.py`, `inspect_fn.py`)
+  3. Per-ISA opcode-bigram TF-IDF similarity + L2 logistic match model (`similarity.py`, `inspect_fn.py`)
   4. Single-file zero-dependency HTML Decomp Atlas & Run Report (`atlas.py`)
   5. Background-solved early-abort race coordination (`queue.py`, `candidates.py`)
 """
@@ -324,3 +324,22 @@ s32 TestFunc(s32 a) {
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class KintounMacroNameTests(unittest.TestCase):
+    def test_every_perm_name_has_a_kintoun_name(self):
+        from kintoun import macros
+
+        for perm in [n for n in macros._MACRO_NAMES if n.startswith("PERM_")]:
+            own = "KINTOUN_" + perm[len("PERM_"):]
+            if perm == "PERM_GENERAL":
+                own = "KINTOUN_ALT"
+            self.assertIn(own, macros._MACRO_NAMES, perm)
+
+    def test_kintoun_wrappers_unwrap_like_perm(self):
+        from kintoun import macros
+
+        for a, b in (("PERM_RANDOMIZE", "KINTOUN_RANDOMIZE"), ("PERM_FORCE_SAMELINE", "KINTOUN_FORCE_SAMELINE")):
+            src = "int f(void) {\n    %s(return\n 1;)\n}\n"
+            self.assertEqual(macros._preprocess_deterministic_wrappers(src % a), macros._preprocess_deterministic_wrappers(src % b))
+            self.assertNotIn(b, macros._preprocess_deterministic_wrappers(src % b))

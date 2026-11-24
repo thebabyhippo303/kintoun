@@ -116,9 +116,9 @@ For binaries linking SDK or middleware built with a different compiler, add `[[c
 
 ---
 
-## 7. `PERM_*` User Macros, `INCLUDE_ASM` Import/Integrate, and HTML Decomp Atlas
+## 7. `KINTOUN_*` Macros, `INCLUDE_ASM` Import/Integrate, and HTML Decomp Atlas
 
-* **Inline `PERM_*` / `KINTOUN_*` Hypotheses (`macros.py`):** Annotate interacting C hypotheses directly with `PERM_GENERAL(a, b)`, `PERM_INT(lo, hi)`, `PERM_LINESWAP(...)`, `PERM_ONCE(key, stmt)`, `PERM_VAR(k, v)`, or `PERM_SAMELINE(...)` and run `kintoun permute`. Kintoun evaluates your macro space and feeds the top candidates straight into its 12-parent beam search.
+* **Inline `KINTOUN_*` Hypotheses (`macros.py`):** Annotate interacting C hypotheses directly with `KINTOUN_ALT(a, b)`, `KINTOUN_INT(lo, hi)`, `KINTOUN_LINESWAP(...)`, `KINTOUN_ONCE(key, stmt)`, `KINTOUN_VAR(k, v)`, or `KINTOUN_SAMELINE(...)` and run `kintoun permute`. Files already annotated with decomp-permuter's `PERM_*` names (`PERM_GENERAL`, `PERM_INT`, ...) work unchanged as aliases. Kintoun evaluates your macro space and feeds the top candidates straight into its 12-parent beam search.
 * **Multi-Function Repo Import & Verified Integration (`project_io.py`):**
   ```bash
   # Extract standalone candidate .c + header typedefs + compile_commands/ninja flags + .map info:
@@ -127,7 +127,7 @@ For binaries linking SDK or middleware built with a different compiler, add `[[c
   # Splice verified C back into src/world.c (replaces INCLUDE_ASM/GLOBAL_ASM & verifies full TU):
   kintoun integrate cand.c --into src/world.c --func World_Tick
   ```
-* **Zero-Node Single-File HTML Atlas (`atlas.py`):**
+* **Single-File Offline HTML Atlas (`atlas.py`):**
   ```bash
   kintoun atlas -o atlas.html
   ```

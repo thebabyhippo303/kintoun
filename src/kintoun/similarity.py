@@ -1,7 +1,6 @@
 """Zero-dependency per-ISA opcode-bigram TF-IDF similarity search and logistic match-probability model.
 
-Replaces heavyweight 3 GB PyTorch/HuggingFace embedding pipelines with a sub-second pure-stdlib
-engine supporting PowerPC (`ppc_elf`), MIPS (`mips_elf`), and ARM/Thumb (`arm_elf`):
+A sub-second pure-stdlib engine (no embedding models or external dependencies) supporting PowerPC (`ppc_elf`), MIPS (`mips_elf`), and ARM/Thumb (`arm_elf`):
   - `extract_asm_signature`: decodes normalized register-invariant opcode unigrams, opcode bigrams,
     control-flow bigrams, and structural ratios per ISA.
   - `find_similar_functions`: TF-IDF cosine-similarity search across matched functions in `src/`,

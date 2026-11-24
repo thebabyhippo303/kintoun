@@ -1,6 +1,6 @@
 """Self-contained zero-dependency HTML Decomp Atlas & Run Report generator (`kintoun atlas`).
 
-Generates a single interactive `atlas.html` file with zero Node/React/Vite/CDN dependencies:
+Generates a single interactive `atlas.html` file that works offline and loads nothing external:
   - Project-wide function & byte-match progress bar (`done`, `near-miss`, `pending`, `quarantined`, `blocked`)
   - Pure-stdlib 2D structural PCA scatter map over per-ISA feature vectors (hover + click inspection)
   - Module / class prefix progress bars
