@@ -90,30 +90,33 @@ Each agent session received all 60 functions in one fresh workspace with a singl
 | Raw `m2c` seed | 60 | 0 | 0 | 0.0% | 0.0% | 0.0% | 0 | 0 |
 | Headless `kintoun permute` (30s per function) | 60 | 38 | 9 | 15.0% | 47.1% | 49.3% | 22 | 9 |
 | **Gemini 4 Neon (high) + Kintoun, 30 min whole set** | **60** | **60** | **13** | **21.7%** | **83.5%** | **88.6%** | **46** | **20** |
-| **Claude Opus 5.5 (high) + Kintoun, 30 min whole set*** | **60** | **60** | **12** | **20.0%** | **79.3%** | **87.6%** | **41** | **18** |
-| **Muse Wonder 1.0 (high) + Kintoun, 30 min whole set**** | **60** | **60** | **13** | **21.7%** | **70.0%** | **74.8%** | **28** | **17** |
+| **Claude Fable 5.2 (high) + Kintoun, 30 min whole set*** | **60** | **60** | **13** | **21.7%** | **81.6%** | **88.0%** | **43** | **22** |
+| **Claude Opus 5.5 (high) + Kintoun, 30 min whole set**** | **60** | **60** | **12** | **20.0%** | **79.3%** | **87.6%** | **41** | **18** |
+| **Muse Wonder 1.0 (high) + Kintoun, 30 min whole set***** | **60** | **60** | **13** | **21.7%** | **70.0%** | **74.8%** | **28** | **17** |
 | **Grok 4.7 (high) + Kintoun, 30 min whole set** | **60** | **60** | **12** | **20.0%** | **58.5%** | **52.1%** | **24** | **14** |
 
-\* Claude Opus 5.5 (high): session ended at 27.8 of the 30 minutes when the service's usage limit was reached.
+\* Claude Fable 5.2 (high): session ended on its own after 23.1 of the 30 minutes.
 
-\*\* Muse Wonder 1.0 (high): session ended on its own after 18.8 of the 30 minutes.
+\*\* Claude Opus 5.5 (high): session ended at 27.8 of the 30 minutes when the service's usage limit was reached.
 
-| Size tier | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean | Muse Wonder 1.0 exact | Muse Wonder 1.0 mean | Grok 4.7 exact | Grok 4.7 mean |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| `tiny_24_64B` | 12 | 85.8% | 7 | 10 | 96.4% | 9 | 92.4% | 9 | 91.2% | 9 | 92.4% |
-| `small_68_136B` | 12 | 45.6% | 2 | 3 | 79.5% | 3 | 79.5% | 4 | 75.6% | 3 | 71.0% |
-| `medium_140_260B` | 12 | 36.3% | 0 | 0 | 73.2% | 0 | 68.6% | 0 | 67.0% | 0 | 53.1% |
-| `large_264_480B` | 12 | 39.6% | 0 | 0 | 89.5% | 0 | 83.8% | 0 | 66.9% | 0 | 50.0% |
-| `xlarge_484_960B` | 12 | 28.2% | 0 | 0 | 78.8% | 0 | 72.4% | 0 | 49.4% | 0 | 26.1% |
+\*\*\* Muse Wonder 1.0 (high): session ended on its own after 18.8 of the 30 minutes.
 
-| Family | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean | Muse Wonder 1.0 exact | Muse Wonder 1.0 mean | Grok 4.7 exact | Grok 4.7 mean |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| `leaf_int` | 10 | 89.9% | 7 | 10 | 100.0% | 9 | 97.9% | 9 | 96.4% | 9 | 97.9% |
-| `branch_guard` | 10 | 43.0% | 0 | 0 | 76.5% | 0 | 76.8% | 0 | 72.7% | 0 | 65.9% |
-| `loop` | 10 | 45.7% | 0 | 1 | 74.6% | 1 | 68.1% | 1 | 62.8% | 1 | 53.0% |
-| `float_fpu` | 10 | 19.2% | 0 | 0 | 89.6% | 0 | 84.6% | 0 | 53.0% | 0 | 27.8% |
-| `call_chain` | 10 | 59.7% | 2 | 2 | 87.1% | 2 | 83.3% | 3 | 79.6% | 2 | 70.3% |
-| `vtable_dispatch` | 10 | 25.2% | 0 | 0 | 73.1% | 0 | 65.4% | 0 | 55.6% | 0 | 36.3% |
+| Size tier | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Fable 5.2 exact | Claude Fable 5.2 mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean | Muse Wonder 1.0 exact | Muse Wonder 1.0 mean | Grok 4.7 exact | Grok 4.7 mean |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `tiny_24_64B` | 12 | 85.8% | 7 | 10 | 96.4% | 9 | 92.4% | 9 | 92.4% | 9 | 91.2% | 9 | 92.4% |
+| `small_68_136B` | 12 | 45.6% | 2 | 3 | 79.5% | 4 | 83.1% | 3 | 79.5% | 4 | 75.6% | 3 | 71.0% |
+| `medium_140_260B` | 12 | 36.3% | 0 | 0 | 73.2% | 0 | 69.3% | 0 | 68.6% | 0 | 67.0% | 0 | 53.1% |
+| `large_264_480B` | 12 | 39.6% | 0 | 0 | 89.5% | 0 | 87.3% | 0 | 83.8% | 0 | 66.9% | 0 | 50.0% |
+| `xlarge_484_960B` | 12 | 28.2% | 0 | 0 | 78.8% | 0 | 75.8% | 0 | 72.4% | 0 | 49.4% | 0 | 26.1% |
+
+| Family | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Fable 5.2 exact | Claude Fable 5.2 mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean | Muse Wonder 1.0 exact | Muse Wonder 1.0 mean | Grok 4.7 exact | Grok 4.7 mean |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `leaf_int` | 10 | 89.9% | 7 | 10 | 100.0% | 9 | 97.9% | 9 | 97.9% | 9 | 96.4% | 9 | 97.9% |
+| `branch_guard` | 10 | 43.0% | 0 | 0 | 76.5% | 0 | 82.2% | 0 | 76.8% | 0 | 72.7% | 0 | 65.9% |
+| `loop` | 10 | 45.7% | 0 | 1 | 74.6% | 1 | 69.6% | 1 | 68.1% | 1 | 62.8% | 1 | 53.0% |
+| `float_fpu` | 10 | 19.2% | 0 | 0 | 89.6% | 0 | 88.0% | 0 | 84.6% | 0 | 53.0% | 0 | 27.8% |
+| `call_chain` | 10 | 59.7% | 2 | 2 | 87.1% | 3 | 82.4% | 2 | 83.3% | 3 | 79.6% | 2 | 70.3% |
+| `vtable_dispatch` | 10 | 25.2% | 0 | 0 | 73.1% | 0 | 69.4% | 0 | 65.4% | 0 | 55.6% | 0 | 36.3% |
 
 All agents compile every function (22 did not with headless search alone). Exact matches come from the small functions; the 140 to 888 byte functions end roughly 25% to 90% aligned on average, depending on the agent, a starting point for finishing by hand.
 
