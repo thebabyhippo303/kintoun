@@ -1,4 +1,4 @@
-# Kintoun
+⁹# Kintoun
 
 **Matching C decompilation for PowerPC, MIPS and ARM. One AI agent with Kintoun and 30 minutes took 60 raw `m2c` functions from a PS2 game it had never seen to 60 of 60 compiling, 13 exact matches and 83.5% aligned on average.**
 
@@ -44,6 +44,14 @@ Kintoun is like a sister of [TNRP](https://nimbusrecomp.org), and sometimes they
 | `vtable_dispatch` | 10 | 25.2% | 0 | 0 | 73.1% | 0 | 65.4% | 0 | 55.6% |
 
 Every agent compiles all 60 functions (22 did not with headless search alone).
+
+
+• Timeline & Improvement: Collected between mid-October and October 25th before TNRP started; PowerPC starting alignment has since grown by roughly 40% following the open-source GPL release.
+
+Dragon Ball Z: Sagas
+• Functions Named: 9,281 out of 9,961 (93.17%)
+• Functions Matched (Pure C): 6,636 out of 9,961 (66.62%)
+• Code Bytes Matched: 991,716 out of 3,161,132
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase. On a held out benchmark of 69 real console functions it starts from raw `m2c` output and reaches 63.6% aligned on average (75% median), with 8 exact matches.
 
