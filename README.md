@@ -1,12 +1,48 @@
 # Kintoun
 
-**Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF32 verifier for PowerPC, MIPS, and ARM.**
+**Matching C decompilation for PowerPC, MIPS and ARM. One AI agent with Kintoun and 30 minutes took 60 raw `m2c` functions from a PS2 game it had never seen to 60 of 60 compiling, 13 exact matches and 83.5% aligned on average.**
 
-Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)), expanded in **0.2.0** with dedicated first-class **MIPS** and **ARM / Thumb** engines, expanded in **0.3.0** with a single-machine governor, zero-LLM near-miss closer, multi-agent chess-clock queue, Overseer, and agent skills (`CLI-OVERSEER` and `kintoun-match`), expanded in **0.4.0** with binary xrefs, struct-field consensus, inlined-helper detection, bit-exact `.rodata` float & magic-division solving, wrong-compiler fingerprinting + `[[compiler_bands]]`, `kintoun probe-flags`, and `kintoun scratch` (`decomp.me`), expanded in **0.5.0** with pure-stdlib `KINTOUN_*` permutation macros (decomp-permuter `PERM_*` names accepted) + beam-search hybrid, `INCLUDE_ASM`/`GLOBAL_ASM` + `.map` project `import` & full-TU verified `integrate`, TF-IDF assembly similarity + logistic match calibration, and a single-file HTML Decomp Atlas (`kintoun atlas`), expanded in **0.6.0** with zero-config `objdiff.json` / `dtk` / `splat.yaml` ingestion, byte-verified post-match C cleanup (`kintoun clean`), live editor `kintoun watch`, factual binary struct/vtable header synthesis (`kintoun synth-headers`), `kintoun doctor`, and verifiable SFT/DPO dataset export (`kintoun export-dataset`), and expanded in **0.7.0** with a self-learning side-tree Engine Lab (`kintoun engine`) and `ENGINE-BUILDER` subagent skill gated on blind unseen functions, and expanded in **0.8.0** with a stratified 60-function zero-prior-context CLI agent benchmark harness (`kintoun agent-bench`) and target-evidenced MIPS readonly/small-data constant pool verification.
+Kintoun 0.8.0 is a standalone permuter, beam search engine and strict ELF32 verifier that needs nothing beyond the Python 3.11 standard library. It was built to match thousands of PowerPC functions for GameCube decompilation, including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp), and now covers PowerPC, MIPS and ARM / Thumb, with a benchmark you can run on any command line agent, agent skills and an MCP server.
 
 Kintoun is like a sister of [TNRP](https://nimbusrecomp.org), and sometimes they work together.
 
-Kintoun has been trained through research and development on TNRP's 15 game codebase. On a held out benchmark of 69 real console functions it starts from raw `m2c` output and reaches 63.6% aligned on average (75% median), with 8 exact matches. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+## Benchmark: 60 functions from a PS2 game Kintoun had never seen
+
+60 functions from a commercial PS2 game outside the 15 game development set, built with Metrowerks for PS2. Every function starts from raw `m2c` output, which never compiles as is. Each agent got all 60 in one fresh, empty workspace with a single 30 minute clock for the whole set, the same brief and no earlier attempts. Every result was verified again outside the agent's workspace.
+
+| Stage | Functions | Compiles | Exact (`VERIFIED`) | Exact % | Mean aligned | Median aligned | 80% or better | 95% or better |
+|---|---|---|---|---|---|---|---|---|
+| Raw `m2c` seed | 60 | 0 | 0 | 0.0% | 0.0% | 0.0% | 0 | 0 |
+| Headless `kintoun permute` (30s per function) | 60 | 38 | 9 | 15.0% | 47.1% | 49.3% | 22 | 9 |
+| **Gemini 4 Neon (high) + Kintoun, 30 min whole set** | **60** | **60** | **13** | **21.7%** | **83.5%** | **88.6%** | **46** | **20** |
+| **Claude Opus 5.5 (high) + Kintoun, 30 min whole set*** | **60** | **60** | **12** | **20.0%** | **79.3%** | **87.6%** | **41** | **18** |
+
+\* Claude Opus 5.5 (high): session ended at 27.8 of the 30 minutes when the service's usage limit was reached.
+
+### By size
+
+| Size tier | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean |
+|---|---|---|---|---|---|---|---|
+| `tiny_24_64B` | 12 | 85.8% | 7 | 10 | 96.4% | 9 | 92.4% |
+| `small_68_136B` | 12 | 45.6% | 2 | 3 | 79.5% | 3 | 79.5% |
+| `medium_140_260B` | 12 | 36.3% | 0 | 0 | 73.2% | 0 | 68.6% |
+| `large_264_480B` | 12 | 39.6% | 0 | 0 | 89.5% | 0 | 83.8% |
+| `xlarge_484_960B` | 12 | 28.2% | 0 | 0 | 78.8% | 0 | 72.4% |
+
+### By kind of function
+
+| Family | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean |
+|---|---|---|---|---|---|---|---|
+| `leaf_int` | 10 | 89.9% | 7 | 10 | 100.0% | 9 | 97.9% |
+| `branch_guard` | 10 | 43.0% | 0 | 0 | 76.5% | 0 | 76.8% |
+| `loop` | 10 | 45.7% | 0 | 1 | 74.6% | 1 | 68.1% |
+| `float_fpu` | 10 | 19.2% | 0 | 0 | 89.6% | 0 | 84.6% |
+| `call_chain` | 10 | 59.7% | 2 | 2 | 87.1% | 2 | 83.3% |
+| `vtable_dispatch` | 10 | 25.2% | 0 | 0 | 73.1% | 0 | 65.4% |
+
+Every agent compiles all 60 functions (22 did not with headless search alone).
+
+Kintoun has been trained through research and development on TNRP's 15 game codebase. On a held out benchmark of 69 real console functions it starts from raw `m2c` output and reaches 63.6% aligned on average (75% median), with 8 exact matches.
 
 ## What makes Kintoun different
 * **Real C only:** Rejects inline assembly, `GLOBAL_ASM`, naked functions, and raw `.long`/`.4byte`/`.word` directives.
@@ -84,6 +120,17 @@ kintoun verify src/global/Assert_Fail.c --func Assert_Fail
 kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
 ```
 
+## What each version added
+
+* **0.1.0**: built to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp))
+* **0.2.0**: dedicated first-class **MIPS** and **ARM / Thumb** engines
+* **0.3.0**: a single-machine governor, zero-LLM near-miss closer, multi-agent chess-clock queue, Overseer, and agent skills (`CLI-OVERSEER` and `kintoun-match`)
+* **0.4.0**: binary xrefs, struct-field consensus, inlined-helper detection, bit-exact `.rodata` float & magic-division solving, wrong-compiler fingerprinting + `[[compiler_bands]]`, `kintoun probe-flags`, and `kintoun scratch` (`decomp.me`)
+* **0.5.0**: pure-stdlib `KINTOUN_*` permutation macros (decomp-permuter `PERM_*` names accepted) + beam-search hybrid, `INCLUDE_ASM`/`GLOBAL_ASM` + `.map` project `import` & full-TU verified `integrate`, TF-IDF assembly similarity + logistic match calibration, and a single-file HTML Decomp Atlas (`kintoun atlas`)
+* **0.6.0**: zero-config `objdiff.json` / `dtk` / `splat.yaml` ingestion, byte-verified post-match C cleanup (`kintoun clean`), live editor `kintoun watch`, factual binary struct/vtable header synthesis (`kintoun synth-headers`), `kintoun doctor`, and verifiable SFT/DPO dataset export (`kintoun export-dataset`)
+* **0.7.0**: a self-learning side-tree Engine Lab (`kintoun engine`) and `ENGINE-BUILDER` subagent skill gated on blind unseen functions
+* **0.8.0**: a stratified 60-function zero-prior-context CLI agent benchmark harness (`kintoun agent-bench`) and target-evidenced MIPS readonly/small-data constant pool verification
+
 ## Documentation
 * [AGENTS.md](AGENTS.md) - setup, workflow, and maintenance playbook for AI coding agents
 * [docs/USAGE.md](docs/USAGE.md) - a full matching session: setup, verify, permute, search length, reading results, MCP
@@ -114,15 +161,6 @@ TESTED ON A GAME KINTOUN HAD NEVER SEEN
 • Kintoun on its own, 30 seconds per function with no AI: 38 of 60 compile, 9 match exactly, and the average function ends 47.1% aligned, with 22 at 80% or better.
 • One Gemini agent with Kintoun and 30 minutes for all 60 functions together: all 60 compile, 13 match exactly, and the average function ends 83.5% aligned (88.6% median), with 46 at 80% or better. Floating point functions went from 19% to 90% on average, and C++ virtual calls from 25% to 73%.
 • One Claude Opus 5.5 agent with Kintoun under the same conditions: all 60 compile, 12 match exactly, and the average function ends 79.3% aligned (87.6% median), with 41 at 80% or better. Its session ended at 27.8 of the 30 minutes on a usage limit.
-
-| Stage | Functions | Compiles | Exact | Mean aligned | Median aligned | 80% or better | 95% or better |
-|---|---|---|---|---|---|---|---|
-| Raw m2c seed | 60 | 0 | 0 | 0.0% | 0.0% | 0 | 0 |
-| Kintoun alone, 30s per function | 60 | 38 | 9 | 47.1% | 49.3% | 22 | 9 |
-| **Gemini 4 Neon + Kintoun, 30 min whole set** | 60 | **60** | **13** | **83.5%** | **88.6%** | **46** | **20** |
-| **Claude Opus 5.5 + Kintoun, 30 min whole set\*** | 60 | **60** | **12** | **79.3%** | **87.6%** | **41** | **18** |
-
-\* Session ended at 27.8 of the 30 minutes when the service's usage limit was reached.
 
 • Full tables by size and kind are in docs/BENCHMARKS.md.
 
