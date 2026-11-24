@@ -18,41 +18,44 @@ Kintoun is like a sister of [TNRP](https://nimbusrecomp.org), and sometimes they
 | **Claude Fable 5.2 (high) + Kintoun, 30 min whole set*** | **60** | **60** | **13** | **21.7%** | **81.6%** | **88.0%** | **43** | **22** |
 | **Claude Opus 5.5 (high) + Kintoun, 30 min whole set**** | **60** | **60** | **12** | **20.0%** | **79.3%** | **87.6%** | **41** | **18** |
 | **Gemini 4 Carbon (high) + Kintoun, 30 min whole set** | **60** | **60** | **12** | **20.0%** | **78.2%** | **85.6%** | **38** | **19** |
-| **Muse Wonder 1.0 (high) + Kintoun, 30 min whole set***** | **60** | **60** | **13** | **21.7%** | **70.0%** | **74.8%** | **28** | **17** |
-| **Muse Wonder Full 1.0 (high) + Kintoun, 30 min whole set****** | **60** | **60** | **12** | **20.0%** | **69.4%** | **71.9%** | **28** | **15** |
-| **Claude Haiku 5.5 (high) + Kintoun, 30 min whole set******* | **60** | **60** | **10** | **16.7%** | **63.2%** | **70.1%** | **25** | **10** |
+| **Muse Spark 1.3 (high) + Kintoun, 30 min whole set***** | **60** | **60** | **11** | **18.3%** | **71.7%** | **77.4%** | **28** | **14** |
+| **Muse Wonder 1.0 (high) + Kintoun, 30 min whole set****** | **60** | **60** | **13** | **21.7%** | **70.0%** | **74.8%** | **28** | **17** |
+| **Muse Wonder Full 1.0 (high) + Kintoun, 30 min whole set******* | **60** | **60** | **12** | **20.0%** | **69.4%** | **71.9%** | **28** | **15** |
+| **Claude Haiku 5.5 (high) + Kintoun, 30 min whole set******** | **60** | **60** | **10** | **16.7%** | **63.2%** | **70.1%** | **25** | **10** |
 | **Grok 4.7 (high) + Kintoun, 30 min whole set** | **60** | **60** | **12** | **20.0%** | **58.5%** | **52.1%** | **24** | **14** |
 
 \* Claude Fable 5.2 (high): session ended on its own after 23.1 of the 30 minutes.
 
 \*\* Claude Opus 5.5 (high): session ended at 27.8 of the 30 minutes when the service's usage limit was reached.
 
-\*\*\* Muse Wonder 1.0 (high): session ended on its own after 18.8 of the 30 minutes.
+\*\*\* Muse Spark 1.3 (high): session ended on its own after 22.8 of the 30 minutes.
 
-\*\*\*\* Muse Wonder Full 1.0 (high): session ended on its own after 27.2 of the 30 minutes.
+\*\*\*\* Muse Wonder 1.0 (high): session ended on its own after 18.8 of the 30 minutes.
 
-\*\*\*\*\* Claude Haiku 5.5 (high): session ended on its own after 18.6 of the 30 minutes.
+\*\*\*\*\* Muse Wonder Full 1.0 (high): session ended on its own after 27.2 of the 30 minutes.
+
+\*\*\*\*\*\* Claude Haiku 5.5 (high): session ended on its own after 18.6 of the 30 minutes.
 
 ### By size
 
-| Size tier | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Fable 5.2 exact | Claude Fable 5.2 mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean | Gemini 4 Carbon exact | Gemini 4 Carbon mean | Muse Wonder 1.0 exact | Muse Wonder 1.0 mean | Muse Wonder Full 1.0 exact | Muse Wonder Full 1.0 mean | Claude Haiku 5.5 exact | Claude Haiku 5.5 mean | Grok 4.7 exact | Grok 4.7 mean |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `tiny_24_64B` | 12 | 85.8% | 7 | 10 | 96.4% | 9 | 92.4% | 9 | 92.4% | 9 | 91.2% | 9 | 91.2% | 9 | 91.2% | 8 | 86.6% | 9 | 92.4% |
-| `small_68_136B` | 12 | 45.6% | 2 | 3 | 79.5% | 4 | 83.1% | 3 | 79.5% | 3 | 78.8% | 4 | 75.6% | 3 | 74.4% | 2 | 65.1% | 3 | 71.0% |
-| `medium_140_260B` | 12 | 36.3% | 0 | 0 | 73.2% | 0 | 69.3% | 0 | 68.6% | 0 | 75.9% | 0 | 67.0% | 0 | 65.1% | 0 | 64.3% | 0 | 53.1% |
-| `large_264_480B` | 12 | 39.6% | 0 | 0 | 89.5% | 0 | 87.3% | 0 | 83.8% | 0 | 76.4% | 0 | 66.9% | 0 | 66.5% | 0 | 60.7% | 0 | 50.0% |
-| `xlarge_484_960B` | 12 | 28.2% | 0 | 0 | 78.8% | 0 | 75.8% | 0 | 72.4% | 0 | 68.5% | 0 | 49.4% | 0 | 49.7% | 0 | 39.4% | 0 | 26.1% |
+| Size tier | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Fable 5.2 exact | Claude Fable 5.2 mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean | Gemini 4 Carbon exact | Gemini 4 Carbon mean | Muse Spark 1.3 exact | Muse Spark 1.3 mean | Muse Wonder 1.0 exact | Muse Wonder 1.0 mean | Muse Wonder Full 1.0 exact | Muse Wonder Full 1.0 mean | Claude Haiku 5.5 exact | Claude Haiku 5.5 mean | Grok 4.7 exact | Grok 4.7 mean |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `tiny_24_64B` | 12 | 85.8% | 7 | 10 | 96.4% | 9 | 92.4% | 9 | 92.4% | 9 | 91.2% | 9 | 92.4% | 9 | 91.2% | 9 | 91.2% | 8 | 86.6% | 9 | 92.4% |
+| `small_68_136B` | 12 | 45.6% | 2 | 3 | 79.5% | 4 | 83.1% | 3 | 79.5% | 3 | 78.8% | 2 | 76.5% | 4 | 75.6% | 3 | 74.4% | 2 | 65.1% | 3 | 71.0% |
+| `medium_140_260B` | 12 | 36.3% | 0 | 0 | 73.2% | 0 | 69.3% | 0 | 68.6% | 0 | 75.9% | 0 | 65.8% | 0 | 67.0% | 0 | 65.1% | 0 | 64.3% | 0 | 53.1% |
+| `large_264_480B` | 12 | 39.6% | 0 | 0 | 89.5% | 0 | 87.3% | 0 | 83.8% | 0 | 76.4% | 0 | 67.5% | 0 | 66.9% | 0 | 66.5% | 0 | 60.7% | 0 | 50.0% |
+| `xlarge_484_960B` | 12 | 28.2% | 0 | 0 | 78.8% | 0 | 75.8% | 0 | 72.4% | 0 | 68.5% | 0 | 56.2% | 0 | 49.4% | 0 | 49.7% | 0 | 39.4% | 0 | 26.1% |
 
 ### By kind of function
 
-| Family | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Fable 5.2 exact | Claude Fable 5.2 mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean | Gemini 4 Carbon exact | Gemini 4 Carbon mean | Muse Wonder 1.0 exact | Muse Wonder 1.0 mean | Muse Wonder Full 1.0 exact | Muse Wonder Full 1.0 mean | Claude Haiku 5.5 exact | Claude Haiku 5.5 mean | Grok 4.7 exact | Grok 4.7 mean |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| `leaf_int` | 10 | 89.9% | 7 | 10 | 100.0% | 9 | 97.9% | 9 | 97.9% | 9 | 96.4% | 9 | 96.4% | 9 | 96.4% | 8 | 90.9% | 9 | 97.9% |
-| `branch_guard` | 10 | 43.0% | 0 | 0 | 76.5% | 0 | 82.2% | 0 | 76.8% | 0 | 76.4% | 0 | 72.7% | 0 | 70.8% | 0 | 69.5% | 0 | 65.9% |
-| `loop` | 10 | 45.7% | 0 | 1 | 74.6% | 1 | 69.6% | 1 | 68.1% | 1 | 63.0% | 1 | 62.8% | 1 | 68.5% | 0 | 62.1% | 1 | 53.0% |
-| `float_fpu` | 10 | 19.2% | 0 | 0 | 89.6% | 0 | 88.0% | 0 | 84.6% | 0 | 78.7% | 0 | 53.0% | 0 | 51.5% | 0 | 37.1% | 0 | 27.8% |
-| `call_chain` | 10 | 59.7% | 2 | 2 | 87.1% | 3 | 82.4% | 2 | 83.3% | 2 | 83.0% | 3 | 79.6% | 2 | 74.8% | 2 | 69.6% | 2 | 70.3% |
-| `vtable_dispatch` | 10 | 25.2% | 0 | 0 | 73.1% | 0 | 69.4% | 0 | 65.4% | 0 | 71.5% | 0 | 55.6% | 0 | 54.2% | 0 | 50.0% | 0 | 36.3% |
+| Family | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Fable 5.2 exact | Claude Fable 5.2 mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean | Gemini 4 Carbon exact | Gemini 4 Carbon mean | Muse Spark 1.3 exact | Muse Spark 1.3 mean | Muse Wonder 1.0 exact | Muse Wonder 1.0 mean | Muse Wonder Full 1.0 exact | Muse Wonder Full 1.0 mean | Claude Haiku 5.5 exact | Claude Haiku 5.5 mean | Grok 4.7 exact | Grok 4.7 mean |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `leaf_int` | 10 | 89.9% | 7 | 10 | 100.0% | 9 | 97.9% | 9 | 97.9% | 9 | 96.4% | 9 | 97.9% | 9 | 96.4% | 9 | 96.4% | 8 | 90.9% | 9 | 97.9% |
+| `branch_guard` | 10 | 43.0% | 0 | 0 | 76.5% | 0 | 82.2% | 0 | 76.8% | 0 | 76.4% | 0 | 70.3% | 0 | 72.7% | 0 | 70.8% | 0 | 69.5% | 0 | 65.9% |
+| `loop` | 10 | 45.7% | 0 | 1 | 74.6% | 1 | 69.6% | 1 | 68.1% | 1 | 63.0% | 0 | 68.3% | 1 | 62.8% | 1 | 68.5% | 0 | 62.1% | 1 | 53.0% |
+| `float_fpu` | 10 | 19.2% | 0 | 0 | 89.6% | 0 | 88.0% | 0 | 84.6% | 0 | 78.7% | 0 | 58.9% | 0 | 53.0% | 0 | 51.5% | 0 | 37.1% | 0 | 27.8% |
+| `call_chain` | 10 | 59.7% | 2 | 2 | 87.1% | 3 | 82.4% | 2 | 83.3% | 2 | 83.0% | 2 | 79.1% | 3 | 79.6% | 2 | 74.8% | 2 | 69.6% | 2 | 70.3% |
+| `vtable_dispatch` | 10 | 25.2% | 0 | 0 | 73.1% | 0 | 69.4% | 0 | 65.4% | 0 | 71.5% | 0 | 55.5% | 0 | 55.6% | 0 | 54.2% | 0 | 50.0% | 0 | 36.3% |
 
 Every agent compiles all 60 functions (22 did not with headless search alone).
 
