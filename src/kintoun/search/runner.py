@@ -203,6 +203,14 @@ def generate_proposals(
                 pass
 
         if "systematic" in chosen or "random" in chosen:
+            from kintoun.constants import constant_repair_variants
+
+            for family, cand in constant_repair_variants(source, target_fn, ctx):
+                if cand not in seen:
+                    seen.add(cand)
+                    outputs.append((family, cand))
+                    if len(outputs) >= max_items:
+                        return outputs
             for family, cand in ppc_seeds.ppc_seed_variants(source, target_fn, ctx):
                 if cand not in seen:
                     seen.add(cand)
@@ -536,6 +544,13 @@ def _generate_arch_proposals(
 
     # 4. Full cross-architecture C-shape & floating-point mutations
     if "systematic" in chosen or "random" in chosen:
+        if target_fn is not None and ctx is not None:
+            from kintoun.constants import constant_repair_variants
+
+            for family, text in constant_repair_variants(source, target_fn, ctx):
+                if text not in seen:
+                    seen.add(text)
+                    outputs.append((family, text))
         for family, text in _iter_c_shape_families(source, hoist_c89=True):
             if text in seen:
                 continue

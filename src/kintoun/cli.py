@@ -365,7 +365,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 def cmd_verify(args: argparse.Namespace) -> int:
     cfg = load_config(Path(args.config) if args.config else None)
     ctx, target_fn = _resolve_target(args, cfg)
-    compiler = make_compiler(cfg)
+    compiler = make_compiler(cfg, va=target_fn.va)
     source = Path(args.source).read_text(encoding="utf-8")
     res = verify_source(
         source,
@@ -422,7 +422,7 @@ def _resolve_search_limits(args: argparse.Namespace, cfg) -> tuple[float, int, i
 def cmd_permute(args: argparse.Namespace) -> int:
     cfg = load_config(Path(args.config) if args.config else None)
     ctx, target_fn = _resolve_target(args, cfg)
-    compiler = make_compiler(cfg)
+    compiler = make_compiler(cfg, va=target_fn.va)
     src_path = Path(args.source)
     source = src_path.read_text(encoding="utf-8")
     cache_dir = cfg.resolve_path(cfg.search.cache_dir)
@@ -500,7 +500,8 @@ def cmd_check(args: argparse.Namespace) -> int:
 
     cfg = load_config(Path(args.config) if args.config else None)
     ctx, target_fn = _resolve_target(args, cfg)
-    chk = check_function(target_fn, ctx)
+    active_preset = cfg.compiler_for(target_fn.va).preset
+    chk = check_function(target_fn, ctx, configured_preset=active_preset)
     diff = score_difficulty(target_fn, ctx)
     payload = {**chk, "difficulty": diff["score"], "tier": diff["tier"], "tags": diff["tags"]}
     if args.json:
@@ -512,6 +513,9 @@ def cmd_check(args: argparse.Namespace) -> int:
         )
         if payload["tags"]:
             print(f"  tags: {', '.join(payload['tags'])}")
+        comp_fp = payload.get("compiler_fingerprint") or {}
+        if comp_fp.get("warning"):
+            print(f"  compiler warning: {comp_fp['warning']}")
         for blk in payload["blockers"]:
             print(f"  blocker: {blk}")
     return 0 if payload["plain_c"] else 1
@@ -535,12 +539,34 @@ def cmd_context(args: argparse.Namespace) -> int:
         diff = pack["difficulty"]
         print(f"# {pack['name']} ({pack['addr']}) [{pack['arch']}, {pack['size_bytes']}B]")
         print(f"Verdict: {pack['verdict']}  Difficulty: {diff['tier']} ({diff['score']}/100)  Tags: {', '.join(diff['tags'])}")
+        comp_fp = pack.get("compiler_fingerprint") or {}
+        if comp_fp.get("warning"):
+            print(f"Compiler Warning: {comp_fp['warning']}")
         if pack["blockers"]:
             print("Blockers: " + "; ".join(pack["blockers"]))
+        if pack.get("incoming_callers"):
+            print("Incoming Callers: " + ", ".join(pack["incoming_callers"]))
+        if pack.get("vtable_or_data_refs"):
+            print("Vtable/Data Refs: " + ", ".join(pack["vtable_or_data_refs"]))
         if pack["callees"]:
             print("Callees: " + ", ".join(pack["callees"]))
         if pack["globals"]:
             print("Globals: " + ", ".join(pack["globals"]))
+        if pack.get("field_offset_consensus"):
+            fields_s = ", ".join(f"{k}: {v}" for k, v in pack["field_offset_consensus"].items())
+            print("Field Consensus: " + fields_s)
+        if pack.get("exact_floats"):
+            fl_s = ", ".join(f"{f['hex']} -> {f['exact_expr']}" for f in pack["exact_floats"][:6])
+            print("Exact Floats: " + fl_s)
+        if pack.get("magic_divisions"):
+            md_s = ", ".join(f"{m['hex']} -> {m['c_hint']}" for m in pack["magic_divisions"][:6])
+            print("Magic Divisions: " + md_s)
+        if pack.get("inlined_helper_candidates"):
+            inl_s = "; ".join(
+                f"insns {c['insn_index_range']} shared by {c['shared_by_functions']} fns"
+                for c in pack["inlined_helper_candidates"]
+            )
+            print("Inlined Helper Candidates: " + inl_s)
         if pack["callee_prototypes"]:
             print("\n## Matched Prototypes\n" + "\n".join(pack["callee_prototypes"]))
         print("\n## Target Disassembly\n" + pack["disassembly"])
@@ -552,7 +578,7 @@ def cmd_close(args: argparse.Namespace) -> int:
 
     cfg = load_config(Path(args.config) if args.config else None)
     ctx, target_fn = _resolve_target(args, cfg)
-    compiler = make_compiler(cfg)
+    compiler = make_compiler(cfg, va=target_fn.va)
     src_path = Path(args.source)
     source = src_path.read_text(encoding="utf-8")
     res = close_near_miss(
@@ -612,7 +638,8 @@ def cmd_queue(args: argparse.Namespace) -> int:
         if not args.func or not args.source:
             raise ValueError("queue submit requires --func and --source")
         ctx = load_target_from_config(cfg)
-        compiler = make_compiler(cfg)
+        tf_sub = ctx.resolve_function(args.func)
+        compiler = make_compiler(cfg, va=tf_sub.va)
         code = Path(args.source).read_text(encoding="utf-8")
         out = wq.submit_match(
             args.agent,
@@ -703,6 +730,55 @@ def cmd_bench(args: argparse.Namespace) -> int:
         learn_priors(notes, [Path(args.out)] if args.out else [], out_path=Path(args.learn_priors))
     print(json.dumps(rep, indent=2))
     return 0 if rep.get("promotion_eligible", True) else 1
+
+
+def cmd_probe_flags(args: argparse.Namespace) -> int:
+    from kintoun.prober import probe_compiler_flags
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    ctx, target_fn = _resolve_target(args, cfg)
+    source = Path(args.source).read_text(encoding="utf-8")
+    rep = probe_compiler_flags(source, target_fn, ctx, cfg, workers=args.workers)
+    if args.json:
+        print(json.dumps(rep, indent=2))
+    else:
+        print(f"Flag probe for {rep['name']} ({rep['addr']}) [{rep['preset']}] in {rep['elapsed_s']}s:")
+        for row in rep["results"]:
+            tag = "MATCH" if row["verified"] else row["status"]
+            print(f"  [{tag:<13}] aligned={row['aligned_pct']:6.2f}%  diff={str(row['different_bytes']):<5}  flags={row['flags']}")
+        if rep["toml_snippet"]:
+            print(f"\nBest kintoun.toml setting:\n  {rep['toml_snippet']}")
+    return 0
+
+
+def cmd_scratch(args: argparse.Namespace) -> int:
+    from kintoun.scratch import run_scratch
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    res = run_scratch(
+        args.slug_or_url,
+        cfg,
+        from_json=Path(args.from_json) if args.from_json else None,
+        compiler_dir=args.compiler_dir or "",
+        budget_s=parse_duration_s(args.budget, 60.0),
+        max_candidates=args.max_candidates,
+        workers=args.workers,
+        save_dir=Path(args.save_dir) if args.save_dir else None,
+        out_source=Path(args.out) if args.out else None,
+    )
+    if args.json:
+        print(json.dumps(res, indent=2))
+    else:
+        best = res.get("best") or {}
+        print(
+            f"[{'MATCH' if res.get('verified') else 'BEST'}] {res.get('function')} "
+            f"(scratch={res.get('slug')}, arch={res.get('arch')}, preset={res.get('preset')})"
+        )
+        print(
+            f"  aligned={(best.get('search') or {}).get('aligned_pct', 0.0):.2f}% "
+            f"diff_bytes={best.get('different_bytes')}"
+        )
+    return 0 if res.get("verified") else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -838,6 +914,26 @@ def build_parser() -> argparse.ArgumentParser:
     p_bn.add_argument("--out", help="Write benchmark report JSON to path.")
     p_bn.add_argument("--learn-priors", help="Write updated mutation-family priors JSON to path.")
     p_bn.set_defaults(func_cb=cmd_bench)
+
+    p_pf = sub.add_parser("probe-flags", help="Test a candidate C file across compiler flag matrices to find optimal TU flags.")
+    p_pf.add_argument("source", help="Path to candidate .c file.")
+    p_pf.add_argument("--func", help="Function name or 0xADDRESS.")
+    p_pf.add_argument("--target", help="Standalone target .o file.")
+    p_pf.add_argument("--workers", type=int, default=4, help="Parallel compiler workers.")
+    p_pf.add_argument("--json", action="store_true", help="Emit JSON output.")
+    p_pf.set_defaults(func_cb=cmd_probe_flags)
+
+    p_sc = sub.add_parser("scratch", help="Import a decomp.me scratch by slug/URL (or offline JSON) and run Kintoun locally.")
+    p_sc.add_argument("slug_or_url", help="decomp.me scratch slug or URL (or label when using --from-json).")
+    p_sc.add_argument("--from-json", help="Offline scratch JSON path (for local/air-gapped bundles).")
+    p_sc.add_argument("--compiler-dir", help="Override compiler_dir for the imported scratch.")
+    p_sc.add_argument("--budget", type=str, default="60s", help="Search time budget (default 60s).")
+    p_sc.add_argument("--max-candidates", type=int, default=800, help="Max candidates to evaluate.")
+    p_sc.add_argument("--workers", type=int, default=0, help="Parallel compiler workers (0 = auto).")
+    p_sc.add_argument("--save-dir", help="Directory to save downloaded target.o, candidate.c, and scratch.json.")
+    p_sc.add_argument("--out", help="Write best/verified C source to path.")
+    p_sc.add_argument("--json", action="store_true", help="Emit JSON output.")
+    p_sc.set_defaults(func_cb=cmd_scratch)
     return p
 
 

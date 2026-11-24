@@ -447,7 +447,7 @@ class Overseer:
             return {"dry_run": True, "would_close": item["name"], "best_pct": item["best_pct"]}
         ctx = load_target_from_config(self.cfg)
         tf = ctx.resolve_function(item["name"])
-        compiler = make_compiler(self.cfg)
+        compiler = make_compiler(self.cfg, va=tf.va)
         cache_dir = self.cfg.resolve_path(self.cfg.search.cache_dir)
         priors_path = self.cfg.resolve_path(self.cfg.search.priors_file)
         budget = min(60.0, float(tune["params"]["budget_s"] or 45))

@@ -78,6 +78,15 @@ base_url = ""            # optional custom endpoint URL
 # provider = "openai-compatible"
 # model = "qwen2.5-coder:7b"
 # base_url = "http://localhost:11434/v1"
+
+# Optional per-address-range compiler overrides for mixed-compiler binaries (e.g. SDK / middleware):
+# [[compiler_bands]]
+# name = "dolphin-sdk"
+# start = "0x80169938"
+# end = "0x8017D798"
+# preset = "mwcc-wine"
+# compiler_dir = "${MWCC_DIR}"
+# flags = ["-O4,p", "-nodefaults", "-proc", "gekko", "-fp", "hardware", "-c"]
 ```
 
 ## Strategies

@@ -102,7 +102,21 @@ kintoun bench bench_dev.json --budget 20s --out report_dev.json \
 
 ---
 
-## 6. Portable Agent Skills (`skills/CLI-OVERSEER/` and `skills/kintoun-match/`)
+## 6. Compiler Flag Probing, Mixed-Compiler Bands, and `decomp.me` Scratches
+
+```bash
+# Test a rough C draft across candidate flag combinations in parallel (ranks by alignment %):
+kintoun probe-flags src/Audio/Mixer.c --func Audio__Mixer
+
+# Pull a decomp.me scratch (URL, slug, or offline --from-json bundle) and solve it locally:
+kintoun scratch https://decomp.me/scratch/abc123 --budget 90s --out matched.c
+```
+
+For binaries linking SDK or middleware built with a different compiler, add `[[compiler_bands]]` ranges in `kintoun.toml`; `kintoun check` warns automatically when a function's codegen idioms conflict with the active preset.
+
+---
+
+## 7. Portable Agent Skills (`skills/CLI-OVERSEER/` and `skills/kintoun-match/`)
 
 * **`skills/CLI-OVERSEER/SKILL.md`:** Orchestrator skill enabling any standard CLI coding agent to delegate parallel **Namer** and **Matcher** subagents over Kintoun's queue and governor (standalone or alongside `kintoun overseer`). Includes copy-ready subagent brief templates in `skills/CLI-OVERSEER/references/subagent-briefs.md`.
 * **`skills/kintoun-match/SKILL.md`:** Matcher workflow skill with dedicated symptom-to-C lookup tables for PowerPC (`powerpc.md`), MIPS (`mips.md`), and ARM/Thumb (`arm.md`).

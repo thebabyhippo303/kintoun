@@ -1,6 +1,6 @@
 # AGENTS.md - Kintoun Setup, Workflow, and Maintenance Guide for AI Agents
 
-**Current Version:** `0.3.0` (keep this file updated alongside `pyproject.toml`, `src/kintoun/__init__.py`, and `CHANGELOG.md` on every release).
+**Current Version:** `0.4.0` (keep this file updated alongside `pyproject.toml`, `src/kintoun/__init__.py`, and `CHANGELOG.md` on every release).
 
 This guide is written for AI coding agents (Claude Code, Codex CLI, Gemini CLI, OpenCode, Cursor, etc.) when a user asks you to **set up Kintoun on their decompilation repository**, **match or name functions**, or **extend Kintoun itself**.
 
@@ -38,7 +38,7 @@ kintoun init --preset prodg-wine
 
 ### Step 3: Wire Paths in `kintoun.toml`
 Edit `kintoun.toml` so paths match the user's repo layout (all paths expand `~` and `${ENV_VAR}`):
-- **`[compiler]`:** Set `compiler_dir` (and `wine = "wibo"` or `"wine"` for Windows console compilers), plus exact project optimization `flags` (for example `["-O2", "-c"]` or `["-O4,p", "-nodefaults", "-proc", "gekko", "-fp", "hardware", "-c"]`).
+- **`[compiler]`:** Set `compiler_dir` (and `wine = "wibo"` or `"wine"` for Windows console compilers), plus exact project optimization `flags` (for example `["-O2", "-c"]` or `["-O4,p", "-nodefaults", "-proc", "gekko", "-fp", "hardware", "-c"]`). If you are unsure of the flags for a file, run `kintoun probe-flags cand.c --func <FuncName>`. For mixed-compiler binaries (such as MWCC SDK libraries linked into a ProDG GameCube DOL), add `[[compiler_bands]]` ranges (`start`, `end`, `preset`, `compiler_dir`, `flags`).
 - **`[target]`:**
   - **PowerPC DOL:** Set `dol`, `symbols`, `sda_r13`, and `sda_r2`.
   - **MIPS ELF / PRX / binary:** Set `binary` (ELF32 `ET_EXEC`, PSP `0xFFA0` PRX, or flat binary), `symbols` (dtk `symbols.txt`, splat `symbol_addrs.txt`, or `nm` map), and `gp` (`"0x0"` auto-detects `$gp` from `.reginfo` / `.MIPS.options` / `SceModuleInfo`).
@@ -75,8 +75,8 @@ mkdir -p .codex/skills  && cp -r /path/to/kintoun/skills/* .codex/skills/
 mkdir -p .gemini/skills && cp -r /path/to/kintoun/skills/* .gemini/skills/
 ```
 
-If the user's client supports MCP, register `kintoun mcp` (run from the decomp repo root, or `kintoun -c /path/to/kintoun.toml mcp`) to expose all **14 MCP tools**:
-- **Inspection:** `kintoun_info`, `kintoun_check`, `kintoun_context_pack`
+If the user's client supports MCP, register `kintoun mcp` (run from the decomp repo root, or `kintoun -c /path/to/kintoun.toml mcp`) to expose all **16 MCP tools**:
+- **Inspection & Setup:** `kintoun_info`, `kintoun_check`, `kintoun_context_pack`, `kintoun_probe_flags`, `kintoun_scratch`
 - **Scoring & Search:** `kintoun_verify`, `kintoun_score_candidate`, `kintoun_revise_candidate`, `kintoun_score_candidates`, `kintoun_permute`, `kintoun_close_near_miss`
 - **Multi-Agent Queue & Clock:** `kintoun_claim_next`, `kintoun_clock`, `kintoun_submit_match`, `kintoun_fail_claim`, `kintoun_queue_status`
 
@@ -110,7 +110,8 @@ If the user's client supports MCP, register `kintoun mcp` (run from the decomp r
 - `src/kintoun/verify.py`, `verify_mips.py`, `verify_arm.py` - Strict relocation-exact verifiers.
 - `src/kintoun/governor.py` - 3-tier cross-process compile governor, zram/cgroup `AutoTuner`, 64-stripe deduper, and persistent Wine helper.
 - `src/kintoun/candidates.py` - `cand_<12hex>` candidate store, negative compile-error cache, `revise`, and `score_batch`.
-- `src/kintoun/inspect_fn.py` & `closer.py` - Blocker `check`, static difficulty scorer, `context_pack`, and 7-class zero-AI near-miss closer.
+- `src/kintoun/inspect_fn.py`, `xref.py`, `constants.py`, `compiler_id.py` & `closer.py` - Blocker & wrong-compiler `check`, static difficulty scorer, `context_pack` (with incoming callers/vtables, struct-offset consensus, inlined-helper detection, bit-exact `.rodata` floats, and magic-division inversion), and 7-class zero-AI near-miss closer.
+- `src/kintoun/prober.py` & `scratch.py` - Parallel compiler flag prober (`probe-flags`) and `decomp.me` scratch importer (`scratch`).
 - `src/kintoun/queue.py`, `overseer.py`, `lab.py` - SQLite WAL chess-clock work queue, `none`/`single`/`dual`-brain Overseer, and benchmark/prior runner.
 - `skills/` & `docs/` - Portable `CLI-OVERSEER` and `kintoun-match` skills plus user documentation.
 

@@ -82,12 +82,23 @@ class SearchConfig:
 
 
 @dataclass
+class CompilerBand:
+    """Optional address-range compiler override (`[[compiler_bands]]` in `kintoun.toml`)."""
+
+    name: str
+    start: int
+    end: int
+    compiler: CompilerConfig
+
+
+@dataclass
 class KintounConfig:
     root: Path
     project_name: str = "decomp-project"
     compiler: CompilerConfig = field(default_factory=CompilerConfig)
     target: TargetConfig = field(default_factory=TargetConfig)
     search: SearchConfig = field(default_factory=SearchConfig)
+    compiler_bands: list[CompilerBand] = field(default_factory=list)
 
     def resolve_path(self, raw: str) -> Path | None:
         if not raw:
@@ -95,6 +106,14 @@ class KintounConfig:
         expanded = os.path.expandvars(os.path.expanduser(raw))
         p = Path(expanded)
         return p if p.is_absolute() else (self.root / p).resolve()
+
+    def compiler_for(self, va: int | None = None) -> CompilerConfig:
+        """Return the matching `[[compiler_bands]]` config for `va`, or default `self.compiler`."""
+        if va is not None:
+            for band in self.compiler_bands:
+                if band.start <= va < band.end:
+                    return band.compiler
+        return self.compiler
 
 
 def _parse_int(val: Any, default: int = 0) -> int:
@@ -167,10 +186,37 @@ def load_config(path: Path | None = None) -> KintounConfig:
         plateau=int(srch_raw.get("plateau", 0)),
         shared_governor=bool(srch_raw.get("shared_governor", False)),
     )
+    bands_raw = data.get("compiler_bands", [])
+    compiler_bands: list[CompilerBand] = []
+    if isinstance(bands_raw, list):
+        for idx, b in enumerate(bands_raw):
+            if not isinstance(b, dict):
+                continue
+            b_cc = CompilerConfig(
+                preset=str(b.get("preset", compiler.preset)),
+                command=list(b.get("command", [])),
+                flags=list(b.get("flags", [])),
+                compiler_dir=str(b.get("compiler_dir", compiler.compiler_dir)),
+                wine=str(b.get("wine", compiler.wine)),
+                wineprefix=str(b.get("wineprefix", compiler.wineprefix)),
+                timeout_s=float(b.get("timeout_s", compiler.timeout_s)),
+                env={**compiler.env, **{str(k): str(v) for k, v in b.get("env", {}).items()}},
+                assembler=list(b.get("assembler", compiler.assembler)),
+            )
+            compiler_bands.append(
+                CompilerBand(
+                    name=str(b.get("name", f"band_{idx}")),
+                    start=_parse_int(b.get("start"), 0),
+                    end=_parse_int(b.get("end"), 0),
+                    compiler=b_cc,
+                )
+            )
+
     return KintounConfig(
         root=root,
         project_name=str(proj.get("name", root.name)),
         compiler=compiler,
         target=target,
         search=search,
+        compiler_bands=compiler_bands,
     )

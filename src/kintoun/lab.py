@@ -34,7 +34,6 @@ def run_benchmark(
     if not isinstance(entries, list):
         raise ValueError("benchmark manifest must be a JSON list or {'functions': [...]}")
 
-    compiler = make_compiler(cfg)
     cache_dir = cfg.resolve_path(cfg.search.cache_dir)
     priors_path = cfg.resolve_path(cfg.search.priors_file)
     ctx_cfg = None
@@ -62,6 +61,8 @@ def run_benchmark(
                 ctx_cfg = load_target_from_config(cfg)
             ctx = ctx_cfg
             tf = ctx.resolve_function(func_name)
+
+        compiler = make_compiler(cfg, va=tf.va)
 
         res = run_search(
             source=src_text,

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0
+
+Kintoun has been trained through research and development on TNRP's 15 game codebase.
+
+### Binary cross references, struct consensus, inlined helpers and exact constants
+* **Incoming xrefs and struct field consensus (`xref.py`, `kintoun context`):** Indexes incoming direct callers (`bl`, `jal`, `bl`/`blx`), vtable and jump table pointer slots, and struct offset type consensus (`+0x1C -> s16`, `+0x44 -> f32`) mined from matched `src/` files.
+* **Inlined helper detector (`xref.py`):** Hashes normalized 5 instruction sliding windows across the target binary to flag repeated `static inline` helper sequences inside target functions and link matched peers.
+* **Bit exact `.rodata` float and magic division solver (`constants.py`, `runner.py`):** Decodes 32/64 bit IEEE 754 words into shortest bit exact round trip C float literals (recognizing `1.0f / N` and trig ratios), snaps 1 to 3 ULP rounded float candidates during `permute`, and inverts reciprocal magic multiply constants (`0x55555556` -> `x / 3`, `0x66666667` -> `x / 5`, etc.).
+
+### Wrong compiler detection, `[[compiler_bands]]`, flag prober and `decomp.me` scratches
+* **Wrong compiler fingerprinter and per range overrides (`compiler_id.py`, `config.py`, `compiler.py`):** Fingerprints compiler codegen idioms across PowerPC (`prodg` vs `mwcc`), MIPS (`ee-gcc`/`psp-gcc` vs `mwcc`/`snc`) and ARM/Thumb (`agbcc` vs EABI/`mwccarm`), warns in `kintoun check` on mismatches, and adds `[[compiler_bands]]` in `kintoun.toml` so mixed compiler binaries route SDK/middleware address ranges to their own compiler preset automatically.
+* **Per file compiler flag prober (`prober.py`, `kintoun probe-flags`, `kintoun_probe_flags`):** Compiles a rough C draft across preset flag matrices (`-O1/-O2/-O3/-Os`, `-O4,p/-O4,s`, `-G0/-G8`, `-fp hardware/fmadd`, `-inline auto/deferred/off`) in parallel and ranks them by alignment %.
+* **One command `decomp.me` scratch runner (`scratch.py`, `kintoun scratch`, `kintoun_scratch`):** Pulls a `decomp.me` scratch by slug or URL (or offline JSON bundle), maps compiler and flags onto Kintoun presets, and runs local multi core beam search plus near miss closing.
+
 ## 0.3.0
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase.

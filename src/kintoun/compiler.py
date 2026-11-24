@@ -256,9 +256,9 @@ class AgbccCompiler(CommandCompiler):
             return CompileResult(127, "", f"compiler executable not found: {exc}", out_obj)
 
 
-def make_compiler(cfg: KintounConfig) -> CommandCompiler:
-    """Instantiate a CompilerBackend from KintounConfig."""
-    cc: CompilerConfig = cfg.compiler
+def make_compiler(cfg: KintounConfig, va: int | None = None) -> CommandCompiler:
+    """Instantiate a CompilerBackend from KintounConfig (honoring `[[compiler_bands]]` when `va` is given)."""
+    cc: CompilerConfig = cfg.compiler_for(va)
     cdir = cfg.resolve_path(cc.compiler_dir)
     env = dict(cc.env)
     env.setdefault("WINEDEBUG", "-all")

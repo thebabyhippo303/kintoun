@@ -2,7 +2,7 @@
 
 **Compiler-agnostic matching-C decompilation permuter, beam-search engine, and strict ELF32 verifier for PowerPC, MIPS, and ARM.**
 
-Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)), expanded in **0.2.0** with dedicated first-class **MIPS** (PS2 Emotion Engine, PSP Allegrex, MIPS32 LE/BE) and **ARM / Thumb** (ARMv4T/ARMv5TE GBA and Nintendo DS, A32, Thumb-1, and Thumb-2 mixed width) engines, and expanded in **0.3.0** with a single-machine brute-force governor, zero-LLM near-miss closer, multi-agent chess-clock work queue, code/single/dual-brain Overseer, and portable agent skills (`CLI-OVERSEER` and `kintoun-match`).
+Kintoun is a standalone, zero-dependency (Python 3.11+ stdlib) matching-C search tool originally developed to match thousands of PowerPC functions for GameCube decompilation (including [dbzsagas-decomp](https://github.com/thebabyhippo303/dbzsagas-decomp)), expanded in **0.2.0** with dedicated first-class **MIPS** and **ARM / Thumb** engines, expanded in **0.3.0** with a single-machine governor, zero-LLM near-miss closer, multi-agent chess-clock queue, Overseer, and agent skills (`CLI-OVERSEER` and `kintoun-match`), and expanded in **0.4.0** with binary xrefs, struct-field consensus, inlined-helper detection, bit-exact `.rodata` float & magic-division solving, wrong-compiler fingerprinting + `[[compiler_bands]]`, `kintoun probe-flags`, and `kintoun scratch` (`decomp.me`).
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase. On a held out benchmark of 69 real console functions it starts from raw `m2c` output and reaches 63.6% aligned on average (75% median), with 8 exact matches. See [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
 
@@ -46,6 +46,10 @@ kintoun close src/MyClass/MyFunc.c --func MyClass__MyFunc --write
 # Multi-agent queue & out-of-the-box overseer ($0 code-only, single-API, or dual-API brain):
 kintoun queue init && kintoun queue status
 kintoun overseer once --brain none
+
+# Probe optimal per-file compiler flags or run a decomp.me scratch locally:
+kintoun probe-flags src/MyClass/MyFunc.c --func MyClass__MyFunc
+kintoun scratch https://decomp.me/scratch/abc123 --out matched.c
 ```
 
 ## Plugging into `dbzsagas-decomp`
@@ -71,7 +75,7 @@ kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
 * [skills/kintoun-match/SKILL.md](skills/kintoun-match/SKILL.md) - matcher skill & PowerPC / MIPS / ARM symptom-to-C lookup tables
 
 ## MCP server
-An optional MCP server exposes 14 Kintoun tools (`verify`, `permute`, `info`, `check`, `context_pack`, `score_candidate`, `revise_candidate`, `score_candidates`, `close_near_miss`, `claim_next`, `clock`, `submit_match`, `fail_claim`, and `queue_status`). Install the optional extra, then start the server:
+An optional MCP server exposes 16 Kintoun tools (`verify`, `permute`, `info`, `check`, `context_pack`, `probe_flags`, `scratch`, `score_candidate`, `revise_candidate`, `score_candidates`, `close_near_miss`, `claim_next`, `clock`, `submit_match`, `fail_claim`, and `queue_status`). Install the optional extra, then start the server:
 
 ```bash
 pip install -e ".[mcp]"

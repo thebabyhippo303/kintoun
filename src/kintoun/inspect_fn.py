@@ -429,10 +429,18 @@ def decode_target_features(target_fn: TargetFunction, ctx: TargetContext) -> dic
     return _decode_ppc_features(target_fn, ctx)
 
 
-def check_function(target_fn: TargetFunction, ctx: TargetContext) -> dict[str, Any]:
-    """Fast structural check: determine if `target_fn` is matchable in plain C or has non-C blockers."""
+def check_function(
+    target_fn: TargetFunction,
+    ctx: TargetContext,
+    *,
+    configured_preset: str = "",
+) -> dict[str, Any]:
+    """Fast structural check: determine if `target_fn` is matchable in plain C or has non-C / wrong-compiler blockers."""
+    from kintoun.compiler_id import fingerprint_compiler
+
     dec = decode_target_features(target_fn, ctx)
-    blockers = dec["blockers"]
+    comp_fp = fingerprint_compiler(target_fn, ctx, configured_preset=configured_preset)
+    blockers = list(dec["blockers"])
     plain_c = len(blockers) == 0 and target_fn.size > 0
     return {
         "name": target_fn.name,
@@ -442,6 +450,7 @@ def check_function(target_fn: TargetFunction, ctx: TargetContext) -> dict[str, A
         "plain_c": plain_c,
         "verdict": "plain-c" if plain_c else "not-plain-c",
         "blockers": blockers,
+        "compiler_fingerprint": comp_fp,
         "features": dec["features"],
         "callees": dec["callees"],
         "globals": dec["globals"],
@@ -552,18 +561,37 @@ def build_context_pack(
     max_disasm_lines: int = 64,
 ) -> dict[str, Any]:
     """Build a compact ~1.5k-token one-call brief for `target_fn`."""
+    from kintoun.compiler_id import fingerprint_compiler
+    from kintoun.constants import scan_target_constants
+    from kintoun.xref import analyze_function_xrefs_and_inlines
+
     dec = decode_target_features(target_fn, ctx)
     diff = score_difficulty(target_fn, ctx)
+    active_preset = cfg.compiler_for(target_fn.va).preset if cfg is not None else ""
+    comp_fp = fingerprint_compiler(target_fn, ctx, configured_preset=active_preset)
+    consts = scan_target_constants(target_fn, ctx)
+
     eff_src = src_dir
     if eff_src is None and cfg is not None:
         cand_src = cfg.root / "src"
         if cand_src.is_dir():
             eff_src = cand_src
 
+    cache_root = (
+        (cfg.resolve_path(cfg.search.cache_dir) or (cfg.root / ".kintoun" / "cache"))
+        if cfg is not None
+        else None
+    )
+    xref_info = analyze_function_xrefs_and_inlines(
+        target_fn,
+        ctx,
+        src_dir=eff_src,
+        cache_dir=cache_root,
+    )
+
     protos, examples = _scan_matched_sources(eff_src, set(dec["callees"]))
     hint_data: dict[str, Any] | None = None
-    if cfg is not None:
-        cache_root = cfg.resolve_path(cfg.search.cache_dir) or (cfg.root / ".kintoun" / "cache")
+    if cache_root is not None:
         hint_path = cache_root.parent / "hints" / f"{target_fn.name}.json"
         if hint_path.is_file():
             try:
@@ -579,15 +607,23 @@ def build_context_pack(
         "size_bytes": target_fn.size,
         "verdict": "plain-c" if not dec["blockers"] else "not-plain-c",
         "blockers": dec["blockers"],
+        "compiler_fingerprint": comp_fp,
         "difficulty": {
             "score": diff["score"],
             "tier": diff["tier"],
             "tags": diff["tags"],
             "recommended_time_multiplier": diff["recommended_time_multiplier"],
         },
+        "incoming_callers": xref_info["incoming_callers"],
+        "vtable_or_data_refs": xref_info["vtable_or_data_refs"],
         "callees": dec["callees"],
         "callee_prototypes": protos,
         "globals": dec["globals"],
+        "field_offset_consensus": xref_info["field_offset_consensus"],
+        "inlined_helper_candidates": xref_info["inlined_helper_candidates"],
+        "corpus_inline_defs": xref_info["corpus_inline_defs"],
+        "exact_floats": consts["floats"],
+        "magic_divisions": consts["magic_divisions"],
         "similar_examples": examples,
         "near_miss_hint": hint_data,
         "disassembly": disasm_trimmed,

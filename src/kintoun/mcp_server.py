@@ -41,7 +41,7 @@ def run_mcp(config_path: Path | None = None) -> None:
     def kintoun_verify(source_path: str, func: str = "", target_obj: str = "", lines: int = 24) -> str:
         """Compile a C file and strictly verify it against a target function or .o file."""
         ctx, tf = _load(func, target_obj)
-        compiler = make_compiler(cfg)
+        compiler = make_compiler(cfg, va=tf.va)
         res = verify_source(
             Path(source_path).read_text(encoding="utf-8"),
             tf,
@@ -65,7 +65,7 @@ def run_mcp(config_path: Path | None = None) -> None:
     ) -> str:
         """Run Kintoun real-C mutation and register-permutation search against a target function."""
         ctx, tf = _load(func, target_obj)
-        compiler = make_compiler(cfg)
+        compiler = make_compiler(cfg, va=tf.va)
         mkey = mode.strip().lower()
         if mkey in SEARCH_MODES:
             eff_budget, eff_cands = SEARCH_MODES[mkey]
@@ -110,9 +110,9 @@ def run_mcp(config_path: Path | None = None) -> None:
 
     @mcp.tool()
     def kintoun_check(func: str = "", target_obj: str = "") -> str:
-        """Fast structural check for non-plain-C instructions (paired-single, COP0/VFPU, MCR/SWI, traps)."""
+        """Fast structural check for non-plain-C instructions and wrong-compiler codegen tells."""
         ctx, tf = _load(func, target_obj)
-        return json.dumps(check_function(tf, ctx), indent=2)
+        return json.dumps(check_function(tf, ctx, configured_preset=cfg.compiler_for(tf.va).preset), indent=2)
 
     @mcp.tool()
     def kintoun_context_pack(func: str = "", target_obj: str = "", max_disasm_lines: int = 64) -> str:
@@ -130,7 +130,7 @@ def run_mcp(config_path: Path | None = None) -> None:
     ) -> str:
         """Score inline C code (using shared cache & governor) and return a `candidate_id` for surgical edits."""
         ctx, tf = _load(func, target_obj)
-        compiler = make_compiler(cfg)
+        compiler = make_compiler(cfg, va=tf.va)
         res = store.score_one(
             code,
             tf,
@@ -155,7 +155,7 @@ def run_mcp(config_path: Path | None = None) -> None:
     ) -> str:
         """Apply exact single-match `[{'old': ..., 'new': ...}]` surgical edits to `candidate_id` and re-score."""
         ctx, tf = _load(func, target_obj)
-        compiler = make_compiler(cfg)
+        compiler = make_compiler(cfg, va=tf.va)
         res = store.revise(
             candidate_id,
             edits,
@@ -174,7 +174,7 @@ def run_mcp(config_path: Path | None = None) -> None:
     def kintoun_score_candidates(codes: list[str], func: str = "", target_obj: str = "") -> str:
         """Compile and score 2..16 candidate C formulations in parallel and return them ranked best-first."""
         ctx, tf = _load(func, target_obj)
-        compiler = make_compiler(cfg)
+        compiler = make_compiler(cfg, va=tf.va)
         return json.dumps(store.score_batch(codes, tf, ctx, compiler, forbid_asm=cfg.search.forbid_asm), indent=2)
 
     @mcp.tool()
@@ -187,7 +187,7 @@ def run_mcp(config_path: Path | None = None) -> None:
     ) -> str:
         """Classify a strict asm diff and run targeted 1-to-2-pass zero-LLM near-miss closing."""
         ctx, tf = _load(func, target_obj)
-        compiler = make_compiler(cfg)
+        compiler = make_compiler(cfg, va=tf.va)
         seed = code
         if not seed and candidate_id:
             rec = store.get(candidate_id)
@@ -236,7 +236,8 @@ def run_mcp(config_path: Path | None = None) -> None:
             if rec:
                 src = rec["code"]
         ctx = load_target_from_config(cfg)
-        compiler = make_compiler(cfg)
+        tf_sub = ctx.resolve_function(func_or_addr)
+        compiler = make_compiler(cfg, va=tf_sub.va)
         aid = agent_id.strip() or default_agent
         res = queue.submit_match(
             aid,
@@ -268,5 +269,34 @@ def run_mcp(config_path: Path | None = None) -> None:
     def kintoun_queue_status() -> str:
         """Return multi-agent queue counts, difficulty breakdown, active claims, and top near misses."""
         return json.dumps(queue.status(), indent=2)
+
+    @mcp.tool()
+    def kintoun_probe_flags(code: str, func: str = "", target_obj: str = "") -> str:
+        """Compile `code` across candidate flag sets for the active preset and rank by alignment %."""
+        from kintoun.prober import probe_compiler_flags
+
+        ctx, tf = _load(func, target_obj)
+        return json.dumps(probe_compiler_flags(code, tf, ctx, cfg), indent=2)
+
+    @mcp.tool()
+    def kintoun_scratch(
+        slug_or_url: str,
+        budget_s: float = 60.0,
+        max_candidates: int = 800,
+        compiler_dir: str = "",
+    ) -> str:
+        """Import a `decomp.me` scratch by slug or URL and run Kintoun search + near-miss closer locally."""
+        from kintoun.scratch import run_scratch
+
+        return json.dumps(
+            run_scratch(
+                slug_or_url,
+                cfg,
+                compiler_dir=compiler_dir,
+                budget_s=budget_s,
+                max_candidates=max_candidates,
+            ),
+            indent=2,
+        )
 
     mcp.run()
