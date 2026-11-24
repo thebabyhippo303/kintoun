@@ -31,9 +31,19 @@ def run_mcp(config_path: Path | None = None) -> None:
     default_agent = os.environ.get("KINTOUN_AGENT", f"mcp-{os.getpid()}")
     mcp = FastMCP("kintoun")
 
-    def _load(func: str, target_obj: str):
+    def _load(func: str, target_obj: str, source_path: str = ""):
         if target_obj:
             return load_target_from_object(Path(target_obj), func or None)
+        if not (cfg.target.dol or cfg.target.binary):
+            from kintoun.autoconfig import resolve_objdiff_target_object
+
+            od_obj = resolve_objdiff_target_object(
+                cfg.root,
+                source_file=Path(source_path) if source_path else None,
+                func_name=func or None,
+            )
+            if od_obj is not None:
+                return load_target_from_object(od_obj, func or None)
         ctx = load_target_from_config(cfg)
         return ctx, ctx.resolve_function(func)
 
@@ -372,5 +382,60 @@ def run_mcp(config_path: Path | None = None) -> None:
         out_p = Path(output_html) if Path(output_html).is_absolute() else (cfg.root / output_html)
         sdir = (Path(src_dir) if Path(src_dir).is_absolute() else (cfg.root / src_dir)) if src_dir else None
         return json.dumps(write_atlas_report(out_p, ctx, cfg, src_dir=sdir), indent=2)
+
+    @mcp.tool()
+    def kintoun_clean_match(
+        func: str = "",
+        code: str = "",
+        candidate_id: str = "",
+        target_obj: str = "",
+    ) -> str:
+        """Simplify a verified C match (restructure gotos, prune unused locals/casts) while keeping 0 diff bytes."""
+        from kintoun.cleaner import clean_matched_source
+
+        src = code
+        if not src and candidate_id:
+            rec = store.get(candidate_id)
+            if rec:
+                src = rec["code"]
+        ctx, tf = _load(func, target_obj)
+        compiler = make_compiler(cfg, va=tf.va)
+        return json.dumps(
+            clean_matched_source(src, tf, ctx, compiler, forbid_asm=cfg.search.forbid_asm),
+            indent=2,
+        )
+
+    @mcp.tool()
+    def kintoun_synth_headers(class_name: str = "", output_header: str = "") -> str:
+        """Synthesize factual C struct layouts, vtables, and debug-string hints from the target binary."""
+        from kintoun.synth import synthesize_project_headers
+
+        ctx = load_target_from_config(cfg)
+        out_h = (Path(output_header) if Path(output_header).is_absolute() else (cfg.root / output_header)) if output_header else None
+        return json.dumps(
+            synthesize_project_headers(ctx, class_filter=class_name, out_header=out_h),
+            indent=2,
+        )
+
+    @mcp.tool()
+    def kintoun_doctor(scan_dir: str = "") -> str:
+        """Run end-to-end setup diagnostics (config, Wine/wibo, 2-line C compile smoke test, target symbols)."""
+        from kintoun.doctor import run_doctor
+
+        sdir = (Path(scan_dir) if Path(scan_dir).is_absolute() else (cfg.root / scan_dir)) if scan_dir else None
+        return json.dumps(run_doctor(cfg, scan_dir=sdir), indent=2)
+
+    @mcp.tool()
+    def kintoun_export_dataset(output_jsonl: str = "dataset.jsonl", src_dir: str = "") -> str:
+        """Export verifiable SFT and DPO fine-tuning JSONL pairs from Kintoun's project history."""
+        from kintoun.dataset import export_dataset
+
+        try:
+            ctx = load_target_from_config(cfg)
+        except Exception:
+            ctx = None
+        out_p = Path(output_jsonl) if Path(output_jsonl).is_absolute() else (cfg.root / output_jsonl)
+        sdir = (Path(src_dir) if Path(src_dir).is_absolute() else (cfg.root / src_dir)) if src_dir else (cfg.root / "src")
+        return json.dumps(export_dataset(cache_dir, ctx, src_dir=sdir, out_path=out_p), indent=2)
 
     mcp.run()

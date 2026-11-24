@@ -57,9 +57,9 @@ kintoun queue submit --agent agent-1 --func Player__Update --source src/Player/U
   --category missing_cast --note "Changed count field from s16 to u16 to replace extsh with clrlwi"
 ```
 
-When running `kintoun mcp`, agents get 19 structured MCP tools out of the box:
-* **Inspection, Import & Atlas:** `kintoun_info`, `kintoun_check`, `kintoun_context_pack`, `kintoun_probe_flags`, `kintoun_scratch`, `kintoun_import_function`, `kintoun_integrate_match`, `kintoun_atlas`
-* **Surgical Iteration & Search:** `kintoun_verify`, `kintoun_score_candidate`, `kintoun_revise_candidate`, `kintoun_score_candidates`, `kintoun_permute`, `kintoun_close_near_miss`
+When running `kintoun mcp`, agents get 23 structured MCP tools out of the box:
+* **Inspection, Import, Headers & Atlas:** `kintoun_info`, `kintoun_doctor`, `kintoun_check`, `kintoun_context_pack`, `kintoun_probe_flags`, `kintoun_scratch`, `kintoun_import_function`, `kintoun_integrate_match`, `kintoun_synth_headers`, `kintoun_atlas`, `kintoun_export_dataset`
+* **Surgical Iteration, Search & Cleanup:** `kintoun_verify`, `kintoun_score_candidate`, `kintoun_revise_candidate`, `kintoun_score_candidates`, `kintoun_permute`, `kintoun_close_near_miss`, `kintoun_clean_match`
 * **Queue & Chess Clock:** `kintoun_claim_next`, `kintoun_clock`, `kintoun_submit_match`, `kintoun_fail_claim`, `kintoun_queue_status`
 
 ---
@@ -130,6 +130,20 @@ For binaries linking SDK or middleware built with a different compiler, add `[[c
 * **Single-File Offline HTML Atlas (`atlas.py`):**
   ```bash
   kintoun atlas -o atlas.html
+  ```
+* **Zero-Config Repo Ingestion, Post-Match Cleanup, Live Watch, Header Synthesis & Dataset Export (`0.6.0`):**
+  ```bash
+  # Auto-generate kintoun.toml from objdiff.json, dtk config.yml, or splat.yaml, and run setup doctor:
+  kintoun init
+  kintoun doctor --scan-dir tools
+
+  # Simplify goto/temp/cast artifacts on a verified match while keeping 0 diff bytes:
+  kintoun clean src/world.c --func World_Tick --write
+
+  # Live editor watch mode + binary struct/vtable header synthesis + SFT/DPO dataset export:
+  kintoun watch src/world.c --func World_Tick --auto-close-at 90
+  kintoun synth-headers -o include/synth_types.h
+  kintoun export-dataset -o dataset.jsonl
   ```
 
 ---

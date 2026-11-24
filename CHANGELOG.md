@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.0
+
+Kintoun has been trained through research and development on TNRP's 15 game codebase.
+
+### Zero config `objdiff.json`, `dtk` and `splat.yaml` onboarding + `kintoun doctor`
+* **Repo auto detection and two way `objdiff.json` support (`autoconfig.py`, `config.py`, `kintoun init`):** Automatically detects `objdiff.json`, `dtk` (`config.yml`) and `splat.yaml` to populate `kintoun.toml` (or run zero config per unit `.o` verification directly from `objdiff.json`), and adds `kintoun init --export-objdiff` to generate `objdiff.json` unit manifests from `src/*.c`.
+* **Setup diagnostics and local compiler scanner (`doctor.py`, `kintoun doctor`, `kintoun_doctor`):** Validates config, Wine/`wibo` availability, target binary/symbols and runs a live 2 line C compile ELF32 smoke test, with `--scan-dir` to map local compiler folders onto Kintoun presets.
+
+### Byte verified post match C cleaner and live editor watch mode
+* **Post match de `goto` and cleanup (`cleaner.py`, `kintoun clean`, `permute --clean`, `kintoun_clean_match`):** Greedily restructures forward `goto` guards into `if (!cond)`, backward `goto` loops into `do { ... } while (cond)`, prunes unused locals, inlines single use return temps and removes duplicate casts or self assignments, accepting each step only if `verify_source` confirms `different_bytes == 0` still holds.
+* **Live file save watch mode (`watch.py`, `kintoun watch`):** Monitors a `.c` file as edits are saved in any editor, re scoring via the shared cache and governor, displaying alignment and byte diff deltas against the previous save, and optionally running targeted `close` automatically past `--auto-close-at`.
+
+### Binary struct/vtable header synthesizer and SFT/DPO dataset exporter
+* **Factual binary header synthesis (`synth.py`, `kintoun synth-headers`, `kintoun_synth_headers`):** Scans raw PowerPC, MIPS and ARM/Thumb instructions for `arg0` (`r3`/`$a0`/`r0`) load/store offsets and types, contiguous `.rodata`/`.data` function pointer vtables and debug assert/source filename strings to emit `#ifndef` guarded C struct and vtable headers with explicit padding and static offset comments.
+* **Verifiable fine tuning dataset exporter (`dataset.py`, `runner.py`, `kintoun export-dataset`, `kintoun_export_dataset`):** Records search improvement milestones during `permute`/`close` and exports deduplicated `sft_decomp` (`disasm -> verified C`), `sft_repair` (`near miss C + diff -> verified C`) and `dpo_pair` JSONL records from project history.
+
 ## 0.5.0
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase.

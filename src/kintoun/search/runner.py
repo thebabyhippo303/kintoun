@@ -1034,6 +1034,25 @@ def run_search(
     clean_best["code"] = best["_source"]
     clean_best["strategy"] = best["_family"]
     clean_input = {k: v for k, v in (input_result or {}).items() if not k.startswith("_")}
+    if cache_dir is not None and input_result is not None:
+        from kintoun.dataset import record_search_trajectory
+
+        in_sc = (input_result.get("search") or {})
+        best_sc = (best.get("search") or {})
+        record_search_trajectory(
+            cache_dir,
+            func_name=target_fn.name,
+            func_addr=target_fn.va,
+            arch=ctx.arch,
+            seed_code=input_result.get("_source", source),
+            near_miss_code=input_result.get("_source", source),
+            near_miss_pct=float(in_sc.get("aligned_pct", 0.0)),
+            near_miss_diff=str(in_sc.get("diff", "")),
+            final_code=best["_source"],
+            final_pct=100.0 if best.get("verified") else float(best_sc.get("aligned_pct", 0.0)),
+            verified=bool(best.get("verified")),
+            strategy=str(best.get("_family", "")),
+        )
     return {
         "name": target_fn.name,
         "addr": f"0x{target_fn.va:08X}",

@@ -134,10 +134,16 @@ def find_config(start: Path | None = None) -> Path | None:
 
 
 def load_config(path: Path | None = None) -> KintounConfig:
-    """Load kintoun.toml if found, otherwise return sensible defaults rooted at cwd."""
+    """Load kintoun.toml if found, otherwise auto-detect objdiff/dtk/splat or return cwd defaults."""
     cfg_path = path or find_config()
     if cfg_path is None or not cfg_path.is_file():
-        return KintounConfig(root=Path.cwd().resolve())
+        probe_root = path.resolve().parent if path is not None else Path.cwd().resolve()
+        from kintoun.autoconfig import config_from_detected, detect_repo_layout
+
+        detected = detect_repo_layout(probe_root)
+        if detected is not None:
+            return config_from_detected(detected)
+        return KintounConfig(root=probe_root)
 
     data = tomllib.loads(cfg_path.read_text(encoding="utf-8"))
     root = cfg_path.resolve().parent

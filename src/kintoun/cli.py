@@ -345,6 +345,17 @@ forbid_asm = true
 def _resolve_target(args: argparse.Namespace, cfg):
     if getattr(args, "target", None):
         return load_target_from_object(Path(args.target), getattr(args, "func", None))
+    if not (cfg.target.dol or cfg.target.binary):
+        from kintoun.autoconfig import resolve_objdiff_target_object
+
+        raw_src = getattr(args, "source", None)
+        od_obj = resolve_objdiff_target_object(
+            cfg.root,
+            source_file=Path(raw_src) if raw_src else None,
+            func_name=getattr(args, "func", None),
+        )
+        if od_obj is not None:
+            return load_target_from_object(od_obj, getattr(args, "func", None))
     ctx = load_target_from_config(cfg)
     fn_spec = getattr(args, "func", None)
     if not fn_spec:
@@ -353,12 +364,32 @@ def _resolve_target(args: argparse.Namespace, cfg):
 
 
 def cmd_init(args: argparse.Namespace) -> int:
+    from kintoun.autoconfig import detect_repo_layout, export_objdiff_config, render_detected_toml
+
+    if getattr(args, "export_objdiff", None):
+        cfg = load_config(Path(args.config) if args.config else None)
+        doc = export_objdiff_config(cfg.root, cfg.target.arch, out_path=Path(args.export_objdiff))
+        print(f"Wrote {args.export_objdiff} ({len(doc['units'])} unit(s), arch: {doc['arch']}).")
+        return 0
+
     out = Path(args.output)
     if out.exists() and not args.force:
         print(f"Error: {out} already exists (pass --force to overwrite).", file=sys.stderr)
         return 1
-    out.write_text(_PRESET_TEMPLATES[args.preset], encoding="utf-8")
-    print(f"Wrote {out} (preset: {args.preset}).")
+
+    if getattr(args, "auto", False) or args.preset is None:
+        detected = detect_repo_layout(out.resolve().parent)
+        if detected is not None:
+            out.write_text(render_detected_toml(detected), encoding="utf-8")
+            print(f"Wrote {out} (auto-detected from {', '.join(detected['sources'])}, preset: {detected['preset']}).")
+            return 0
+        if getattr(args, "auto", False):
+            print("Error: no objdiff.json, dtk config.yml, or splat.yaml found to auto-detect.", file=sys.stderr)
+            return 1
+
+    preset = args.preset or "prodg-wine"
+    out.write_text(_PRESET_TEMPLATES[preset], encoding="utf-8")
+    print(f"Wrote {out} (preset: {preset}).")
     return 0
 
 
@@ -446,6 +477,13 @@ def cmd_permute(args: argparse.Namespace) -> int:
         governed=bool(getattr(args, "governed", False) or cfg.search.shared_governor),
     )
     best = res.get("best") or {}
+    if getattr(args, "clean", False) and best.get("code") and best.get("verified"):
+        from kintoun.cleaner import clean_matched_source
+
+        cln = clean_matched_source(best["code"], target_fn, ctx, compiler, forbid_asm=cfg.search.forbid_asm)
+        if cln.get("verified") and cln.get("cleaned_code"):
+            best["code"] = cln["cleaned_code"]
+            res["cleaned_steps"] = cln["applied_steps"]
     if args.write and best.get("code") and (best.get("verified") or args.write_best):
         src_path.write_text(best["code"], encoding="utf-8")
     if getattr(args, "integrate", None) and best.get("code") and best.get("verified"):
@@ -892,14 +930,129 @@ def cmd_atlas(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_clean(args: argparse.Namespace) -> int:
+    from kintoun.cleaner import clean_matched_source
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    ctx, target_fn = _resolve_target(args, cfg)
+    compiler = make_compiler(cfg, va=target_fn.va)
+    src_path = Path(args.source)
+    source = src_path.read_text(encoding="utf-8")
+    res = clean_matched_source(source, target_fn, ctx, compiler, forbid_asm=cfg.search.forbid_asm)
+    if args.write and res.get("verified") and res.get("changed"):
+        src_path.write_text(res["cleaned_code"], encoding="utf-8")
+    if args.json:
+        print(json.dumps(res, indent=2))
+    else:
+        if not res.get("ok"):
+            print(f"[FAILED] {res.get('error')}", file=sys.stderr)
+        else:
+            steps_s = ", ".join(res["applied_steps"]) if res["applied_steps"] else "none needed"
+            print(
+                f"[CLEANED] {res['name']} ({res['addr']}) saved={res['lines_saved']} line(s) "
+                f"steps={len(res['applied_steps'])} ({steps_s})"
+            )
+            if not args.write and res["changed"]:
+                print("\n" + res["cleaned_code"].rstrip())
+    return 0 if res.get("ok") else 1
+
+
+def cmd_watch(args: argparse.Namespace) -> int:
+    from kintoun.watch import WatchSession, format_watch_panel, run_watch_loop
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    ctx, target_fn = _resolve_target(args, cfg)
+    compiler = make_compiler(cfg, va=target_fn.va)
+    cache_dir = cfg.resolve_path(cfg.search.cache_dir) or (cfg.root / ".kintoun" / "cache")
+    sess = WatchSession(
+        source_path=Path(args.source),
+        target_fn=target_fn,
+        ctx=ctx,
+        compiler=compiler,
+        cache_dir=cache_dir,
+        forbid_asm=cfg.search.forbid_asm,
+        auto_close_pct=args.auto_close_at,
+        write_on_match=args.write,
+    )
+    if args.once:
+        ev = sess.evaluate_current()
+        if args.json:
+            print(json.dumps(ev, indent=2))
+        else:
+            print(format_watch_panel(ev))
+        return 0 if ev["verified"] else 1
+    run_watch_loop(sess, interval_s=args.interval, stop_on_verified=not args.keep_running)
+    return 0
+
+
+def cmd_synth_headers(args: argparse.Namespace) -> int:
+    from kintoun.synth import synthesize_project_headers
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    if getattr(args, "target", None):
+        ctx, _ = load_target_from_object(Path(args.target), None)
+    else:
+        ctx = load_target_from_config(cfg)
+    out_h = Path(args.out) if args.out else None
+    res = synthesize_project_headers(ctx, class_filter=args.class_name or "", out_header=out_h)
+    if args.json:
+        print(json.dumps(res, indent=2))
+    elif out_h:
+        print(
+            f"Wrote {out_h} ({len(res['structs'])} struct(s), {len(res['vtables'])} vtable(s), "
+            f"{len(res['debug_strings'])} debug string(s))."
+        )
+    else:
+        print(res["header_code"].rstrip())
+    return 0
+
+
+def cmd_doctor(args: argparse.Namespace) -> int:
+    from kintoun.doctor import run_doctor
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    rep = run_doctor(cfg, scan_dir=Path(args.scan_dir) if args.scan_dir else None)
+    if args.json:
+        print(json.dumps(rep, indent=2))
+    else:
+        print(f"Kintoun Doctor - {rep['project']} (arch={rep['arch']}, preset={rep['preset']})")
+        for chk in rep["checks"]:
+            tag = "OK" if chk["ok"] else "WARN"
+            print(f"  [{tag:<4}] {chk['check']}: {chk['detail']}")
+        for dc in rep["discovered_compilers"]:
+            print(f"  [FOUND] {dc['preset']} ({dc['arch']}) -> {dc['compiler_dir']}")
+    return 0 if rep["ok"] else 1
+
+
+def cmd_export_dataset(args: argparse.Namespace) -> int:
+    from kintoun.dataset import export_dataset
+
+    cfg = load_config(Path(args.config) if args.config else None)
+    cache_dir = cfg.resolve_path(cfg.search.cache_dir) or (cfg.root / ".kintoun" / "cache")
+    try:
+        ctx = load_target_from_config(cfg) if (cfg.target.dol or cfg.target.binary) else None
+    except Exception:
+        ctx = None
+    src_dir = Path(args.src_dir) if args.src_dir else (cfg.root / "src")
+    kinds = tuple(k.strip() for k in args.kinds.split(",") if k.strip())
+    rep = export_dataset(cache_dir, ctx, src_dir=src_dir, out_path=Path(args.output), kinds=kinds)
+    if args.json:
+        print(json.dumps(rep, indent=2))
+    else:
+        print(f"Wrote {rep['output_path']} ({rep['total_records']} record(s): {rep['counts']}).")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="kintoun", description="Kintoun matching-C decompilation permuter & verifier.")
     p.add_argument("--version", action="version", version=f"kintoun {__version__}")
     p.add_argument("-c", "--config", help="Path to kintoun.toml (auto-discovered upward if omitted).")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    p_init = sub.add_parser("init", help="Create a starter kintoun.toml in the current directory.")
-    p_init.add_argument("--preset", choices=sorted(_PRESET_TEMPLATES), default="prodg-wine")
+    p_init = sub.add_parser("init", help="Create a starter kintoun.toml (auto-detects objdiff.json, dtk, or splat.yaml).")
+    p_init.add_argument("--preset", choices=sorted(_PRESET_TEMPLATES), default=None)
+    p_init.add_argument("--auto", action="store_true", help="Require auto-detection from objdiff.json, dtk config.yml, or splat.yaml.")
+    p_init.add_argument("--export-objdiff", help="Export an objdiff.json unit manifest from src/*.c to path.")
     p_init.add_argument("-o", "--output", default="kintoun.toml")
     p_init.add_argument("--force", action="store_true")
     p_init.set_defaults(func_cb=cmd_init)
@@ -952,6 +1105,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_perm.add_argument("--governed", action="store_true", help="Coordinate compile slots across processes via shared governor.")
     p_perm.add_argument("--write", action="store_true", help="Write back source file if a byte-exact match is found.")
     p_perm.add_argument("--write-best", action="store_true", help="With --write, also write best non-matching improvement.")
+    p_perm.add_argument("--clean", action="store_true", help="On byte-exact match, run byte-verified de-goto & temp cleanup.")
     p_perm.add_argument("--integrate", help="On byte-exact match, splice into multi-function .c file and verify full TU.")
     p_perm.add_argument("--json", action="store_true", help="Emit full JSON output.")
     p_perm.set_defaults(func_cb=cmd_permute)
@@ -1072,6 +1226,45 @@ def build_parser() -> argparse.ArgumentParser:
     p_atl.add_argument("--src-dir", help="Matched C directory (defaults to ./src).")
     p_atl.add_argument("--json", action="store_true", help="Emit JSON summary.")
     p_atl.set_defaults(func_cb=cmd_atlas)
+
+    p_cln = sub.add_parser("clean", help="Simplify a verified C match (de-goto, unused locals, casts) while keeping 0 diff bytes.")
+    p_cln.add_argument("source", help="Path to matched .c file.")
+    p_cln.add_argument("--func", help="Function name or 0xADDRESS.")
+    p_cln.add_argument("--target", help="Standalone target .o file.")
+    p_cln.add_argument("--write", action="store_true", help="Write cleaned C back to source file.")
+    p_cln.add_argument("--json", action="store_true", help="Emit JSON output.")
+    p_cln.set_defaults(func_cb=cmd_clean)
+
+    p_wt = sub.add_parser("watch", help="Watch a .c file on save with live aligned diffs, deltas, and optional auto-close.")
+    p_wt.add_argument("source", help="Path to candidate .c file.")
+    p_wt.add_argument("--func", help="Function name or 0xADDRESS.")
+    p_wt.add_argument("--target", help="Standalone target .o file.")
+    p_wt.add_argument("--interval", type=float, default=0.25, help="File poll interval in seconds (default 0.25).")
+    p_wt.add_argument("--auto-close-at", type=float, default=0.0, help="Auto-run targeted close when aligned %% >= threshold (e.g. 90).")
+    p_wt.add_argument("--write", action="store_true", help="Write back winning C if auto-close verifies.")
+    p_wt.add_argument("--once", action="store_true", help="Evaluate once and exit.")
+    p_wt.add_argument("--keep-running", action="store_true", help="Keep watching even after VERIFIED.")
+    p_wt.add_argument("--json", action="store_true", help="With --once, emit JSON output.")
+    p_wt.set_defaults(func_cb=cmd_watch)
+
+    p_syn = sub.add_parser("synth-headers", help="Synthesize factual C structs, vtables, and debug-string hints from the binary.")
+    p_syn.add_argument("-o", "--out", help="Output .h file path (prints to stdout if omitted).")
+    p_syn.add_argument("--class-name", help="Filter synthesis to a single class/module prefix.")
+    p_syn.add_argument("--target", help="Optional standalone .o file.")
+    p_syn.add_argument("--json", action="store_true", help="Emit JSON output.")
+    p_syn.set_defaults(func_cb=cmd_synth_headers)
+
+    p_doc = sub.add_parser("doctor", help="Validate config, Wine/wibo, compiler smoke test, and scan local compiler directories.")
+    p_doc.add_argument("--scan-dir", help="Optional directory (e.g. tools/) to scan for known compiler binaries.")
+    p_doc.add_argument("--json", action="store_true", help="Emit JSON output.")
+    p_doc.set_defaults(func_cb=cmd_doctor)
+
+    p_exp = sub.add_parser("export-dataset", help="Export verifiable SFT and DPO fine-tuning JSONL datasets from project history.")
+    p_exp.add_argument("-o", "--output", default="dataset.jsonl", help="Output .jsonl path (default: dataset.jsonl).")
+    p_exp.add_argument("--src-dir", help="Matched C directory (defaults to ./src).")
+    p_exp.add_argument("--kinds", default="sft_decomp,sft_repair,dpo_pair", help="Comma-separated record kinds to export.")
+    p_exp.add_argument("--json", action="store_true", help="Emit JSON summary.")
+    p_exp.set_defaults(func_cb=cmd_export_dataset)
     return p
 
 
