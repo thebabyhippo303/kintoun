@@ -81,17 +81,34 @@ Headless search is designed to seed and accelerate human or AI matching, especia
 3. **30-minute per-function ceiling (`--timeout 30m`):** Easy functions finish in under a minute while complex functions can iterate with `kintoun context`, hand edits, `KINTOUN_*` macros, `kintoun permute`, and `kintoun close` for up to 30 minutes (`1800s`). If a session hits the 30-minute limit mid-edit, the harness recovers the highest-ranked valid real-C candidate from `candidates.sqlite3` / `trajectories.jsonl`.
 4. **Independent ground-truth audit:** Every output is re-verified outside the agent workspace with `verify_source(..., forbid_asm=True)`.
 
-#### 6-family zero-prior-context `gemini-4-neon-high` calibration sample (1 function per family, `<= 30m/fn`)
+#### Whole set: one zero-prior-context `gemini-4-neon-high` agent, 30 minutes for all 60 functions
 
-On a 6-function calibration draw spanning all 6 structural families (`leaf_int` 60B, `call_chain` 76B, `branch_guard` 160B, `vtable_dispatch` 172B, `loop` 204B, `float_fpu` 296B) from the unseen 60-function MWCC PS2 3.0 manifest:
+One agent session (`gemini-4-neon-high`, effort high) received all 60 functions in one fresh workspace with a single 30-minute clock for the whole set (`kintoun agent-bench run --whole-set --timeout 30m`) and decided by itself how to split its time. It used the full 30 minutes. Every function was then re-verified outside the workspace with `verify_source(..., forbid_asm=True)`.
 
-| Stage | Functions | Compiles | Exact (`VERIFIED`) | Mean aligned | Median aligned | 80% or better | 95% or better |
-|---|---|---|---|---|---|---|---|
-| Raw `m2c` seed | 6 | 0 | 0 | 0.0% | 0.0% | 0 | 0 |
-| Headless `kintoun permute` (30s) | 6 | 4 | 2 | 62.7% | 88.0% | 4 | 2 |
-| **Zero-context `gemini-4-neon-high` (high, `<= 30m/fn`) + Kintoun** | **6** | **6** | **2** | **94.9%** | **97.1%** | **6** | **3** |
+| Stage | Functions | Compiles | Exact (`VERIFIED`) | Exact % | Mean aligned | Median aligned | 80% or better | 95% or better |
+|---|---|---|---|---|---|---|---|---|
+| Raw `m2c` seed | 60 | 0 | 0 | 0.0% | 0.0% | 0.0% | 0 | 0 |
+| Headless `kintoun permute` (30s per function) | 60 | 38 | 9 | 15.0% | 47.1% | 49.3% | 22 | 9 |
+| **One `gemini-4-neon-high` agent + Kintoun (30 min, whole set)** | **60** | **60** | **13** | **21.7%** | **83.5%** | **88.6%** | **46** | **20** |
 
-Notably, on the two C++/control-flow functions where 30-second headless search could not compile raw `m2c` (`0.0%`), zero-context `gemini-4-neon-high` paired with Kintoun raised `vtable_dispatch` (172B) from `0.0%` to `93.0%` aligned and `branch_guard` (160B) from `0.0%` to `82.5%` aligned, while bringing the 296B `float_fpu` function to `100.0%` instruction alignment (`2 / 296` bytes remaining).
+| Size tier | Functions | Headless mean | Headless exact | Agent exact | Agent mean aligned | Agent median aligned |
+|---|---|---|---|---|---|---|
+| `tiny_24_64B` | 12 | 85.8% | 7 | 10 | 96.4% | 100.0% |
+| `small_68_136B` | 12 | 45.6% | 2 | 3 | 79.5% | 89.4% |
+| `medium_140_260B` | 12 | 36.3% | 0 | 0 | 73.2% | 83.2% |
+| `large_264_480B` | 12 | 39.6% | 0 | 0 | 89.5% | 88.7% |
+| `xlarge_484_960B` | 12 | 28.2% | 0 | 0 | 78.8% | 85.4% |
+
+| Family | Functions | Headless mean | Headless exact | Agent exact | Agent mean aligned | Agent median aligned |
+|---|---|---|---|---|---|---|
+| `leaf_int` | 10 | 89.9% | 7 | 10 | 100.0% | 100.0% |
+| `branch_guard` | 10 | 43.0% | 0 | 0 | 76.5% | 84.5% |
+| `loop` | 10 | 45.7% | 0 | 1 | 74.6% | 90.1% |
+| `float_fpu` | 10 | 19.2% | 0 | 0 | 89.6% | 90.5% |
+| `call_chain` | 10 | 59.7% | 2 | 2 | 87.1% | 88.0% |
+| `vtable_dispatch` | 10 | 25.2% | 0 | 0 | 73.1% | 82.0% |
+
+All 60 functions compile after the session (22 did not with headless search alone). Exact matches came from the small functions; the 140 to 888 byte functions end 73% to 90% aligned on average, a starting point for finishing by hand.
 
 ## Reproducing
 
@@ -111,7 +128,19 @@ The JSON output reports the input and best candidate, including `search.aligned_
 # 1. Deterministically select 60 stratified plain-C functions (12 per size tier, 10 per family)
 kintoun agent-bench select --count 60 --seed 20261124 -o manifest_60.json
 
-# 2. Run a zero-prior-context CLI agent with a 30-minute per-function limit (resumable via results.jsonl)
+# 2a. One agent session for the whole set on one shared 30-minute clock (the agent splits its own time)
+kintoun agent-bench run \
+  --manifest manifest_60.json \
+  --out-dir .kintoun/agent_bench_set \
+  --whole-set \
+  --runner agy \
+  --model gemini-4-neon-high \
+  --effort high \
+  --timeout 30m \
+  --concurrency 3 \
+  -o REPORT.md
+
+# 2b. Or one fresh agent per function with a 30-minute per-function limit (resumable via results.jsonl)
 kintoun agent-bench run \
   --manifest manifest_60.json \
   --out-dir .kintoun/agent_bench \

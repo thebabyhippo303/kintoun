@@ -71,7 +71,7 @@ kintoun engine gate --candidate combined --count 40 --confirm-runs 2 --ablate --
 
 # Reproducible 60-function zero-prior-context agent benchmark (30m per-function limit):
 kintoun agent-bench select --count 60 -o manifest_60.json
-kintoun agent-bench run --manifest manifest_60.json --runner agy --model gemini-4-neon-high --effort high --timeout 30m -o REPORT.md
+kintoun agent-bench run --manifest manifest_60.json --whole-set --runner agy --model gemini-4-neon-high --effort high --timeout 30m -o REPORT.md
 ```
 
 ## Plugging into `dbzsagas-decomp`

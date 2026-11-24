@@ -843,6 +843,34 @@ def cmd_agent_bench(args: argparse.Namespace) -> int:
         cfg = load_config(Path(args.config) if args.config else None)
         out_dir = Path(args.out_dir or ".kintoun/agent_bench")
         only = {s.strip() for s in args.only.split(",") if s.strip()} if args.only else None
+        if args.whole_set:
+            from kintoun.agent_bench import run_whole_set_agent_benchmark
+
+            summary = run_whole_set_agent_benchmark(
+                cfg,
+                Path(args.manifest),
+                out_dir,
+                runner=args.runner,
+                model=args.model,
+                effort=args.effort,
+                agent_bin=args.agent_bin or "",
+                custom_template=args.agent_cmd or "",
+                total_timeout_s=parse_duration_s(args.timeout, 1800.0),
+                concurrency=args.concurrency,
+                with_headless_baseline=not args.no_headless_baseline,
+                headless_budget_s=parse_duration_s(args.headless_budget, 30.0),
+                headless_max_candidates=args.headless_max_candidates,
+                limit=args.limit,
+                only_funcs=only,
+                kintoun_cmd=args.kintoun_cmd or "",
+            )
+            md = render_agent_bench_markdown(summary, title=args.title)
+            (out_dir / "REPORT.md").write_text(md, encoding="utf-8")
+            if args.output:
+                Path(args.output).write_text(md, encoding="utf-8")
+            if args.json:
+                print(json.dumps(summary, indent=2))
+            return 0
         summary = run_agent_benchmark(
             cfg,
             Path(args.manifest),
@@ -1390,7 +1418,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_ab.add_argument("--agent-bin", help="Override path to agent CLI binary.")
     p_ab.add_argument("--agent-cmd", help="Custom command template with {prompt}, {func}, {addr}, {workspace}, {timeout_s}.")
     p_ab.add_argument("--kintoun-cmd", help="Override kintoun CLI command advertised inside zero-context prompt.")
-    p_ab.add_argument("--timeout", default="30m", help="Per-function wall-clock time limit (default 30m / 1800s).")
+    p_ab.add_argument("--timeout", default="30m", help="Wall-clock time limit: per function, or for the whole set with --whole-set (default 30m).")
+    p_ab.add_argument(
+        "--whole-set",
+        action="store_true",
+        help="One agent session works every function on one shared clock (--timeout) and decides how to split its time.",
+    )
     p_ab.add_argument("--concurrency", type=int, default=1, help="Number of isolated functions to benchmark concurrently.")
     p_ab.add_argument("--no-headless-baseline", action="store_true", help="Skip 30s headless `kintoun permute` baseline pass.")
     p_ab.add_argument("--headless-budget", default="30s", help="Headless baseline budget per function (default 30s).")

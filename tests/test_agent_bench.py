@@ -314,3 +314,32 @@ class AgentBenchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WholeSetPromptTests(unittest.TestCase):
+    def test_whole_set_prompt_lists_every_function_and_one_shared_clock(self) -> None:
+        from kintoun.agent_bench import build_whole_set_prompt
+
+        funcs = [{"name": f"fn_{i:08X}", "addr": f"0x{i:08X}", "size_bytes": 24 + i} for i in range(3)]
+        p = build_whole_set_prompt(funcs, "mips_elf", "mwccps2", 1800.0)
+        self.assertIn("30 minutes (1800s) in total for the whole set", p)
+        for f in funcs:
+            self.assertIn(f"`funcs/{f['name']}.c`", p)
+        self.assertIn("REAL C ONLY", p)
+
+    def test_whole_set_report_has_no_per_function_time(self) -> None:
+        from kintoun.agent_bench import render_agent_bench_markdown, summarize_agent_benchmark
+
+        rec = {
+            "func": "f", "addr": "0x0", "size_bytes": 24, "size_tier": "tiny_24_64B", "family": "leaf_int",
+            "mode": "whole_set",
+            "seed": {"compiled": False, "verified": False, "aligned_pct": 0.0},
+            "headless": None,
+            "agent": {"compiled": True, "verified": True, "status": "verified", "aligned_pct": 100.0,
+                      "different_bytes": 0, "timed_out": False, "exit_code": 0},
+        }
+        s = summarize_agent_benchmark([rec], model="m", effort="high", per_func_timeout_s=1800.0)
+        self.assertEqual(s["mode"], "whole_set")
+        md = render_agent_bench_markdown(s)
+        self.assertIn("30m for the whole set", md)
+        self.assertNotIn("0.0s", md)

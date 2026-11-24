@@ -934,6 +934,7 @@ def summarize_agent_benchmark(
         "model": model or (results[0].get("model", "") if results else ""),
         "effort": effort or (results[0].get("effort", "") if results else ""),
         "per_func_timeout_s": per_func_timeout_s,
+        "mode": (results[0].get("mode") if results else None) or "per_function",
         "wall_elapsed_s": wall_elapsed_s,
         "overall": {
             "seed": _agg_arm(results, "seed"),
@@ -954,7 +955,7 @@ def summarize_agent_benchmark(
                 "agent_aligned_pct": r["agent"]["aligned_pct"],
                 "agent_verified": r["agent"]["verified"],
                 "agent_different_bytes": r["agent"]["different_bytes"],
-                "agent_elapsed_s": r["agent"]["elapsed_s"],
+                "agent_elapsed_s": r["agent"].get("elapsed_s"),
                 "agent_timed_out": r["agent"]["timed_out"],
             }
             for r in results
@@ -972,13 +973,20 @@ def render_agent_bench_markdown(summary: dict[str, Any], *, title: str = "Zero-C
     model = summary.get("model") or "agent"
     effort = summary.get("effort") or ""
     limit_m = int(round(float(summary.get("per_func_timeout_s") or 1800.0) / 60.0))
-    model_lbl = f"`{model}` ({effort}, <= {limit_m}m/fn)" if effort else f"`{model}` (<= {limit_m}m/fn)"
+    whole_set = summary.get("mode") == "whole_set"
+    budget_lbl = f"{limit_m}m for the whole set" if whole_set else f"<= {limit_m}m/fn"
+    model_lbl = f"`{model}` ({effort}, {budget_lbl})" if effort else f"`{model}` ({budget_lbl})"
+    isolation = (
+        "one fresh temporary workspace for the whole set, one agent session that decides how to split its time"
+        if whole_set
+        else "fresh temporary workspace per function"
+    )
 
     lines: list[str] = [
         f"## {title}",
         "",
         f"* **Functions:** {n} unseen plain-C functions stratified across 5 byte-size tiers and 6 structural families.",
-        f"* **Isolation:** fresh temporary workspace per function, anonymous hex symbols (`fn_XXXXXXXX` / `D_XXXXXXXX`), zero prior conversation or project context, Real C Only (`forbid_asm = true`).",
+        f"* **Isolation:** {isolation}, anonymous hex symbols (`fn_XXXXXXXX` / `D_XXXXXXXX`), zero prior conversation or project context, Real C Only (`forbid_asm = true`).",
         f"* **Agent budget:** {model_lbl}, independent external relocation verification.",
         "",
         "### Overall progression",
@@ -992,7 +1000,7 @@ def render_agent_bench_markdown(summary: dict[str, Any], *, title: str = "Zero-C
             f"| Headless `kintoun permute` (30s) | {h_ov['functions']} | {h_ov['compiles']} | {h_ov['verified']} | {h_ov['verified_pct']}% | {h_ov['mean_aligned_pct']}% | {h_ov['median_aligned_pct']}% | {h_ov['ge_80']} | {h_ov['ge_95']} | {h_ov['median_elapsed_s']}s |"
         )
     lines.append(
-        f"| **Zero-context {model_lbl} + Kintoun** | **{a_ov.get('functions', 0)}** | **{a_ov.get('compiles', 0)}** | **{a_ov.get('verified', 0)}** | **{a_ov.get('verified_pct', 0.0)}%** | **{a_ov.get('mean_aligned_pct', 0.0)}%** | **{a_ov.get('median_aligned_pct', 0.0)}%** | **{a_ov.get('ge_80', 0)}** | **{a_ov.get('ge_95', 0)}** | **{a_ov.get('median_elapsed_s', 0.0)}s** |"
+        f"| **Zero-context {model_lbl} + Kintoun** | **{a_ov.get('functions', 0)}** | **{a_ov.get('compiles', 0)}** | **{a_ov.get('verified', 0)}** | **{a_ov.get('verified_pct', 0.0)}%** | **{a_ov.get('mean_aligned_pct', 0.0)}%** | **{a_ov.get('median_aligned_pct', 0.0)}%** | **{a_ov.get('ge_80', 0)}** | **{a_ov.get('ge_95', 0)}** | **{'-' if whole_set else str(a_ov.get('median_elapsed_s', 0.0)) + 's'}** |"
     )
 
     lines.extend(
@@ -1010,7 +1018,7 @@ def render_agent_bench_markdown(summary: dict[str, Any], *, title: str = "Zero-C
         hl_mean = f"{hl['mean_aligned_pct']}%" if hl else "-"
         hl_ex = str(hl["verified"]) if hl else "-"
         lines.append(
-            f"| `{t_key}` | {ag['functions']} | {hl_mean} | {hl_ex} | {ag['compiles']} | {ag['verified']} | {ag['verified_pct']}% | {ag['mean_aligned_pct']}% | {ag['median_aligned_pct']}% | {ag['median_elapsed_s']}s |"
+            f"| `{t_key}` | {ag['functions']} | {hl_mean} | {hl_ex} | {ag['compiles']} | {ag['verified']} | {ag['verified_pct']}% | {ag['mean_aligned_pct']}% | {ag['median_aligned_pct']}% | {'-' if whole_set else str(ag['median_elapsed_s']) + 's'} |"
         )
 
     lines.extend(
@@ -1028,7 +1036,7 @@ def render_agent_bench_markdown(summary: dict[str, Any], *, title: str = "Zero-C
         hl_mean = f"{hl['mean_aligned_pct']}%" if hl else "-"
         hl_ex = str(hl["verified"]) if hl else "-"
         lines.append(
-            f"| `{f_key}` | {ag['functions']} | {hl_mean} | {hl_ex} | {ag['compiles']} | {ag['verified']} | {ag['verified_pct']}% | {ag['mean_aligned_pct']}% | {ag['median_aligned_pct']}% | {ag['median_elapsed_s']}s |"
+            f"| `{f_key}` | {ag['functions']} | {hl_mean} | {hl_ex} | {ag['compiles']} | {ag['verified']} | {ag['verified_pct']}% | {ag['mean_aligned_pct']}% | {ag['median_aligned_pct']}% | {'-' if whole_set else str(ag['median_elapsed_s']) + 's'} |"
         )
 
     return "\n".join(lines) + "\n"
@@ -1045,3 +1053,285 @@ def load_results_jsonl(results_path: Path) -> list[dict[str, Any]]:
         fk = str(rec.get("func") or rec.get("addr") or len(by_fn))
         by_fn[fk] = rec
     return list(by_fn.values())
+
+
+def build_whole_set_prompt(
+    funcs: list[dict[str, Any]],
+    arch: str,
+    preset: str,
+    total_timeout_s: float,
+    kintoun_cmd: str = "kintoun",
+) -> str:
+    """Construct the zero-prior-context brief for one agent matching a whole set of functions on one shared clock."""
+    isa_ref = (
+        "skills/kintoun-match/references/mips.md"
+        if "mips" in arch
+        else "skills/kintoun-match/references/arm.md"
+        if "arm" in arch
+        else "skills/kintoun-match/references/powerpc.md"
+    )
+    mins = max(1, int(round(total_timeout_s / 60.0)))
+    rows = "\n".join(f"- `{f['name']}` at `{f['addr']}` ({f['size_bytes']} bytes): `funcs/{f['name']}.c`" for f in funcs)
+    return (
+        f"You are matching a set of {len(funcs)} standalone C functions (arch `{arch}`, compiler preset `{preset}`) "
+        f"to 100% relocation-verified byte-exact matches (`VERIFIED`, `different_bytes == 0`).\n\n"
+        f"Time budget: you have {mins} minutes ({int(total_timeout_s)}s) in total for the whole set, and the session is "
+        f"stopped when the time is up. You decide how to spend it: which functions to work on, in what order, and for how long. "
+        f"`START_TIME` holds the start time; check `date` to keep track. The score is how many functions match exactly and how "
+        f"close the rest get, so a closer non-matching function still counts.\n\n"
+        f"Workspace files:\n"
+        f"- `funcs/<name>.c`: the starting raw decompiler seed for each function. Keep your best compiling C for each function "
+        f"saved in its own file at all times; only these files are scored.\n"
+        f"- `kintoun.toml`: preconfigured compiler and target settings.\n"
+        f"- `skills/kintoun-match/SKILL.md` and `{isa_ref}`: assembly-diff-to-C lookup reference.\n\n"
+        f"Functions:\n{rows}\n\n"
+        f"Strict rules:\n"
+        f"1. REAL C ONLY: Never emit `asm`, `__asm__`, `GLOBAL_ASM`, register pins, `.word`/`.byte`/`.long`, or naked functions.\n"
+        f"2. Zero external snooping: Work strictly inside this workspace using `{kintoun_cmd}` CLI commands and the files in `funcs/`.\n"
+        f"3. Always write improvements back to `funcs/<name>.c` so each file holds your highest-aligned compiling C for that function.\n\n"
+        f"Useful commands (replace `<name>`):\n"
+        f"- `{kintoun_cmd} context --func <name>`: target disassembly, callees and globals.\n"
+        f"- `{kintoun_cmd} verify funcs/<name>.c --func <name>`: strict check with an aligned diff.\n"
+        f"- `{kintoun_cmd} permute funcs/<name>.c --func <name> --governed --write --write-best` (add `--quick` or `--time 2m`; "
+        f"`KINTOUN_ALT` / `KINTOUN_LINESWAP` macros are supported).\n"
+        f"- `{kintoun_cmd} close funcs/<name>.c --func <name> --write --write-best` on near-misses.\n"
+    )
+
+
+def run_whole_set_agent_benchmark(
+    cfg: KintounConfig,
+    manifest_path: Path,
+    out_dir: Path,
+    *,
+    runner: str = "agy",
+    model: str = "gemini-4-neon-high",
+    effort: str = "high",
+    agent_bin: str = "",
+    custom_template: str = "",
+    total_timeout_s: float = 1800.0,
+    concurrency: int = 1,
+    with_headless_baseline: bool = True,
+    headless_budget_s: float = 30.0,
+    headless_max_candidates: int = 300,
+    limit: int = 0,
+    only_funcs: set[str] | None = None,
+    kintoun_cmd: str = "",
+) -> dict[str, Any]:
+    """One zero-prior-context agent session works the whole manifest on one shared clock (`total_timeout_s`).
+
+    The agent decides how to split its time between functions. Every function is then re-verified outside the
+    workspace exactly like the per-function protocol, and the same `results.jsonl` / `summary.json` are written.
+    """
+    manifest_doc = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+    entries = manifest_doc.get("functions") if isinstance(manifest_doc, dict) else manifest_doc
+    if not isinstance(entries, list):
+        raise ValueError("manifest must contain a list of functions")
+    if only_funcs:
+        entries = [e for e in entries if str(e.get("func") or e.get("name")) in only_funcs]
+    if limit > 0:
+        entries = entries[:limit]
+    if not (cfg.target.binary or cfg.target.dol):
+        raise ValueError("whole-set mode needs a target binary/DOL in kintoun.toml (standalone .o targets are per-function only)")
+    if any(e.get("target") for e in entries):
+        raise ValueError("whole-set mode does not support per-entry standalone .o targets")
+
+    out_dir = Path(out_dir)
+    for sub in ("best", "logs"):
+        (out_dir / sub).mkdir(parents=True, exist_ok=True)
+
+    repo_skills = Path(__file__).resolve().parent.parent.parent / "skills" / "kintoun-match"
+    src_pkg_dir = Path(__file__).resolve().parent.parent
+    eff_kintoun_cmd = kintoun_cmd or "kintoun"
+    ctx = load_target_from_config(cfg)
+    anon_syms_text, orig_to_anon = _anonymize_symbols_text(ctx)
+    anon_to_orig = {v: k for k, v in orig_to_anon.items()}
+    cfg_bin_path = cfg.resolve_path(cfg.target.binary or cfg.target.dol)
+    assert cfg_bin_path is not None and cfg_bin_path.is_file()
+
+    items: list[dict[str, Any]] = []
+    for item in entries:
+        orig_name = str(item.get("func") or item.get("name") or "")
+        seed_src = item.get("code")
+        if seed_src is None and item.get("source"):
+            sp = Path(item["source"])
+            if not sp.is_absolute():
+                sp = Path(manifest_path).resolve().parent / sp
+                if not sp.is_file():
+                    sp = cfg.root / item["source"]
+            seed_src = sp.read_text(encoding="utf-8")
+        if not seed_src:
+            seed_src = f"int {orig_name}(void) {{\n    return 0;\n}}\n"
+        tf = ctx.resolve_function(orig_name)
+        items.append(
+            {
+                "item": item,
+                "tf": tf,
+                "seed": seed_src,
+                "anon": orig_to_anon.get(tf.name, f"fn_{tf.va:08X}"),
+                "anon_seed": _rewrite_identifiers(seed_src, orig_to_anon),
+            }
+        )
+
+    t_start = time.monotonic()
+    with tempfile.TemporaryDirectory(prefix="kintoun_zcset_") as tmp_ws:
+        ws = Path(tmp_ws)
+        (ws / "orig").mkdir(parents=True, exist_ok=True)
+        (ws / "funcs").mkdir(parents=True, exist_ok=True)
+        if repo_skills.is_dir():
+            shutil.copytree(repo_skills, ws / "skills" / "kintoun-match")
+        rel_bin = f"orig/target{cfg_bin_path.suffix or '.bin'}"
+        try:
+            os.symlink(cfg_bin_path.resolve(), ws / rel_bin)
+        except OSError:
+            shutil.copy2(cfg_bin_path, ws / rel_bin)
+        (ws / "orig" / "symbols.txt").write_text(anon_syms_text, encoding="utf-8")
+        _write_isolated_toml(ws, cfg, rel_binary=rel_bin, rel_symbols="orig/symbols.txt")
+        for it in items:
+            (ws / "funcs" / f"{it['anon']}.c").write_text(it["anon_seed"], encoding="utf-8")
+        (ws / "START_TIME").write_text(time.strftime("%Y-%m-%d %H:%M:%S %Z") + "\n", encoding="utf-8")
+
+        prompt = build_whole_set_prompt(
+            [{"name": it["anon"], "addr": f"0x{it['tf'].va:08X}", "size_bytes": it["tf"].size} for it in items],
+            ctx.arch,
+            cfg.compiler.preset,
+            total_timeout_s,
+            kintoun_cmd=eff_kintoun_cmd,
+        )
+        (out_dir / "PROMPT.md").write_text(prompt, encoding="utf-8")
+        cmd = build_agent_command(
+            runner,
+            prompt=prompt,
+            model=model,
+            effort=effort,
+            timeout_s=total_timeout_s,
+            agent_bin=agent_bin,
+            custom_template=custom_template,
+            func_name="",
+            addr="",
+            workspace=ws,
+        )
+        env = dict(os.environ)
+        existing_pp = env.get("PYTHONPATH", "")
+        env["PYTHONPATH"] = f"{src_pkg_dir}{os.pathsep}{existing_pp}" if existing_pp else str(src_pkg_dir)
+        shim_dir = ws / ".kintoun_bin"
+        shim_dir.mkdir(parents=True, exist_ok=True)
+        shim_bin = shim_dir / "kintoun"
+        shim_bin.write_text(
+            f"#!/bin/sh\nPYTHONPATH={shlex.quote(env['PYTHONPATH'])} exec {shlex.quote(sys.executable)} -m kintoun.cli \"$@\"\n",
+            encoding="utf-8",
+        )
+        shim_bin.chmod(0o755)
+        env["PATH"] = f"{shim_dir}{os.pathsep}{env.get('PATH', '')}"
+        rc, agent_log, timed_out, agent_elapsed_s = _run_subprocess_bounded(
+            cmd, cwd=ws, env=env, timeout_s=total_timeout_s + 15.0
+        )
+        (out_dir / "logs" / "whole_set.log").write_text(agent_log, encoding="utf-8")
+
+        for it in items:
+            fpath = ws / "funcs" / f"{it['anon']}.c"
+            cands: list[str] = []
+            if fpath.is_file():
+                cands.append(fpath.read_text(encoding="utf-8", errors="replace"))
+            cands.extend(_recover_best_cached_source(ws, it["anon"]))
+            cands.append(it["anon_seed"])
+            it["candidates"] = cands
+
+    def _score(it: dict[str, Any]) -> dict[str, Any]:
+        tf = it["tf"]
+        compiler = make_compiler(cfg, va=tf.va)
+        seed_res = verify_source(it["seed"], tf, ctx, compiler, lines=0, forbid_asm=True)
+        seed_compiled = seed_res.get("status") in ("verified", "mismatch", "unresolved")
+        best_res: dict[str, Any] | None = None
+        best_src = it["seed"]
+        for raw in it["candidates"]:
+            deanon = _rewrite_identifiers(raw, anon_to_orig)
+            vres = verify_source(deanon, tf, ctx, compiler, lines=24, forbid_asm=True)
+            if best_res is None or rank_result(vres) < rank_result(best_res):
+                best_res, best_src = vres, deanon
+                if vres.get("verified"):
+                    break
+        if best_res is None:
+            best_res = seed_res
+        headless_info: dict[str, Any] | None = None
+        if with_headless_baseline:
+            with tempfile.TemporaryDirectory(prefix="kintoun_hl_") as hl_tmp:
+                hl_res = run_search(
+                    source=it["seed"],
+                    target_fn=tf,
+                    ctx=ctx,
+                    compiler=compiler,
+                    budget_s=headless_budget_s,
+                    max_candidates=headless_max_candidates,
+                    workers=1,
+                    cache_dir=Path(hl_tmp) / "cache",
+                    forbid_asm=True,
+                    seed=0,
+                    governed=True,
+                )
+            hl_best = hl_res.get("best") or {}
+            hl_comp = hl_best.get("status") in ("verified", "mismatch", "unresolved")
+            headless_info = {
+                "compiled": hl_comp,
+                "verified": bool(hl_res.get("verified")),
+                "status": hl_best.get("status", "error"),
+                "aligned_pct": round(float((hl_best.get("search") or {}).get("aligned_pct") or 0.0), 2) if hl_comp else 0.0,
+                "different_bytes": hl_best.get("different_bytes"),
+                "evaluated": hl_res.get("evaluated", 0),
+                "elapsed_s": hl_res.get("elapsed_s", 0.0),
+            }
+        (out_dir / "best" / f"{tf.name}.c").write_text(best_src, encoding="utf-8")
+        ag_comp = best_res.get("status") in ("verified", "mismatch", "unresolved")
+        item = it["item"]
+        return {
+            "func": tf.name,
+            "anon_func": it["anon"],
+            "addr": f"0x{tf.va:08X}",
+            "size_bytes": tf.size,
+            "size_tier": str(item.get("size_tier") or size_tier_for(tf.size) or "other"),
+            "family": str(item.get("family") or classify_structural_family(check_function(tf, ctx)) or "other"),
+            "runner": runner,
+            "model": model,
+            "effort": effort,
+            "mode": "whole_set",
+            "time_limit_s": total_timeout_s,
+            "seed": {
+                "compiled": seed_compiled,
+                "verified": bool(seed_res.get("verified")),
+                "aligned_pct": round(float((seed_res.get("search") or {}).get("aligned_pct") or 0.0), 2) if seed_compiled else 0.0,
+            },
+            "headless": headless_info,
+            "agent": {
+                "compiled": ag_comp,
+                "verified": bool(best_res.get("verified")),
+                "status": best_res.get("status", "error"),
+                "aligned_pct": round(float((best_res.get("search") or {}).get("aligned_pct") or 0.0), 2) if ag_comp else 0.0,
+                "different_bytes": best_res.get("different_bytes"),
+                "timed_out": timed_out,
+                "exit_code": rc,
+            },
+        }
+
+    workers = max(1, int(concurrency))
+    if workers == 1:
+        results = [_score(it) for it in items]
+    else:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            results = list(pool.map(_score, items))
+    with (out_dir / "results.jsonl").open("w", encoding="utf-8") as fh:
+        for r in results:
+            fh.write(json.dumps(r) + "\n")
+
+    summary = summarize_agent_benchmark(
+        results,
+        runner=runner,
+        model=model,
+        effort=effort,
+        per_func_timeout_s=total_timeout_s,
+        wall_elapsed_s=round(time.monotonic() - t_start, 3),
+    )
+    summary["mode"] = "whole_set"
+    summary["total_time_limit_s"] = total_timeout_s
+    summary["agent_session_s"] = round(agent_elapsed_s, 1)
+    summary["agent_timed_out"] = timed_out
+    (out_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    return summary
