@@ -147,6 +147,7 @@ One overseer agent gets all 500 in one fresh, empty workspace and a single 30 mi
 | Raw `m2c` seed | 500 | 0 | 0 | 0.0% | 0.0% | 0.0% | 0 | 0 |
 | Headless `kintoun permute` (30s per function) | 500 | 358 | 44 | 8.8% | 39.2% | 33.3% | 101 | 50 |
 | **Gemini 4 Neon (high) overseer + Gemini 4 Hydrogen (high) workers + Kintoun, 30 min** | **500** | **500** | **198** | **39.6%** | **69.1%** | **84.4%** | **261** | **209** |
+| **Claude Fable 5.2 (high) overseer + Claude Sonnet 5.5 (high) workers + Kintoun, 30 min** | **500** | **500** | **168** | **33.6%** | **67.4%** | **81.1%** | **254** | **192** |
 | **Muse Wonder Full 1.0 (high) overseer + Muse Spark 1.3 (high) workers + Kintoun, 30 min** | **500** | **500** | **73** | **14.6%** | **51.5%** | **50.0%** | **132** | **77** |
 
 How each overseer ran its team:
@@ -154,28 +155,29 @@ How each overseer ran its team:
 | Overseer | Workers | Workers started | Most at once | Worker minutes | Workers it stopped | How it split the work |
 |---|---|---|---|---|---|---|
 | Gemini 4 Neon (high) | Gemini 4 Hydrogen (high) | 57 | 32 | 732 | 15 | a Kintoun triage of all 500 first, then two workers per game, then smaller rounds aimed at near misses |
+| Claude Fable 5.2 (high) | Claude Sonnet 5.5 (high) | 101 | 40 | 895 | 16 | two workers per game, then a fresh worker for a share whenever one stopped, and merged shares late in the clock |
 | Muse Wonder Full 1.0 (high) | Muse Spark 1.3 (high) | 16 | 16 | 428 | 0 | one worker per game for the whole clock |
 
 ### By size tier
 
-| Size tier | Functions | Headless exact | Headless mean | Gemini 4 Neon team exact | Gemini 4 Neon team mean | Muse Wonder Full 1.0 team exact | Muse Wonder Full 1.0 team mean |
-|---|---|---|---|---|---|---|---|
-| `tiny_24_64B` | 76 | 28 | 65.8% | 57 | 87.7% | 37 | 75.0% |
-| `small_68_136B` | 89 | 8 | 50.9% | 49 | 79.5% | 17 | 63.7% |
-| `medium_140_260B` | 114 | 7 | 40.7% | 47 | 73.5% | 15 | 54.7% |
-| `large_264_480B` | 113 | 1 | 31.0% | 31 | 67.2% | 3 | 43.1% |
-| `xlarge_484_960B` | 108 | 0 | 18.0% | 14 | 44.7% | 1 | 30.4% |
+| Size tier | Functions | Headless exact | Headless mean | Gemini 4 Neon team exact | Gemini 4 Neon team mean | Claude Fable 5.2 team exact | Claude Fable 5.2 team mean | Muse Wonder Full 1.0 team exact | Muse Wonder Full 1.0 team mean |
+|---|---|---|---|---|---|---|---|---|---|
+| `tiny_24_64B` | 76 | 28 | 65.8% | 57 | 87.7% | 56 | 86.4% | 37 | 75.0% |
+| `small_68_136B` | 89 | 8 | 50.9% | 49 | 79.5% | 43 | 78.9% | 17 | 63.7% |
+| `medium_140_260B` | 114 | 7 | 40.7% | 47 | 73.5% | 41 | 72.2% | 15 | 54.7% |
+| `large_264_480B` | 113 | 1 | 31.0% | 31 | 67.2% | 19 | 63.8% | 3 | 43.1% |
+| `xlarge_484_960B` | 108 | 0 | 18.0% | 14 | 44.7% | 9 | 43.1% | 1 | 30.4% |
 
 ### By kind of function
 
-| Family | Functions | Headless exact | Headless mean | Gemini 4 Neon team exact | Gemini 4 Neon team mean | Muse Wonder Full 1.0 team exact | Muse Wonder Full 1.0 team mean |
-|---|---|---|---|---|---|---|---|
-| `leaf_int` | 53 | 11 | 49.8% | 32 | 74.7% | 14 | 53.7% |
-| `branch_guard` | 100 | 21 | 44.3% | 54 | 71.7% | 27 | 56.0% |
-| `loop` | 79 | 0 | 28.3% | 19 | 64.2% | 3 | 45.9% |
-| `float_fpu` | 76 | 1 | 25.3% | 15 | 55.8% | 4 | 36.8% |
-| `call_chain` | 68 | 7 | 43.8% | 27 | 73.7% | 13 | 57.7% |
-| `vtable_dispatch` | 124 | 4 | 43.6% | 51 | 73.3% | 12 | 56.2% |
+| Family | Functions | Headless exact | Headless mean | Gemini 4 Neon team exact | Gemini 4 Neon team mean | Claude Fable 5.2 team exact | Claude Fable 5.2 team mean | Muse Wonder Full 1.0 team exact | Muse Wonder Full 1.0 team mean |
+|---|---|---|---|---|---|---|---|---|---|
+| `leaf_int` | 53 | 11 | 49.8% | 32 | 74.7% | 29 | 70.8% | 14 | 53.7% |
+| `branch_guard` | 100 | 21 | 44.3% | 54 | 71.7% | 49 | 71.0% | 27 | 56.0% |
+| `loop` | 79 | 0 | 28.3% | 19 | 64.2% | 14 | 61.2% | 3 | 45.9% |
+| `float_fpu` | 76 | 1 | 25.3% | 15 | 55.8% | 12 | 54.3% | 4 | 36.8% |
+| `call_chain` | 68 | 7 | 43.8% | 27 | 73.7% | 24 | 74.4% | 13 | 57.7% |
+| `vtable_dispatch` | 124 | 4 | 43.6% | 51 | 73.3% | 40 | 71.2% | 12 | 56.2% |
 
 Every team compiles all 500 (142 did not with headless search alone).
 
