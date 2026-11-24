@@ -1,0 +1,31 @@
+# Kintoun overseer benchmark: one overseer agent leads worker agents over a multi-game function set on one clock.
+# Every value here is a parameter; the overseer and worker briefs are filled in from the templates.
+# Run: kintoun overseer-bench run.toml --out-dir runs/<name>
+
+[set]
+manifest = "sets/set500/manifest.json"   # functions: game, func, addr, size_bytes, size_tier, family, source
+                                          # each game folder sits at games/<game>/ beside the manifest (kintoun.toml, orig/)
+headless = "sets/set500/headless.json"   # optional: cached Kintoun-alone scores (computed if missing)
+
+[clock]
+total = "30m"                             # one clock for the overseer and every worker
+
+[overseer]
+label = "Gemini 4 Neon (high)"
+model = "gemini-4-neon-high"
+effort = "high"
+# {prompt} {model} {effort} {workspace} {timeout_s} are filled in
+cmd = "agy -p {prompt} --model {model} --effort {effort} --dangerously-skip-permissions --disable-slash-commands --new-project --print-timeout {timeout_s}s"
+brief_template = ""                       # empty: the built-in templates/overseer/overseer.md
+
+[workers]
+label = "Gemini 4 Hydrogen (high)"
+model = "gemini-4-hydrogen-high"
+effort = "high"
+cmd = "agy -p {prompt} --model {model} --effort {effort} --dangerously-skip-permissions --disable-slash-commands --new-project --print-timeout {timeout_s}s"
+brief_template = ""                       # empty: the built-in templates/overseer/worker.md
+max = 0                                   # 0: the overseer starts as many as it sees fit
+min_free_mem_gb = 1.5                     # a spawn is refused (with the reason) while free memory is below this
+
+[machine]
+note = ""                                 # empty: CPU threads and memory are read from this machine
