@@ -75,6 +75,22 @@ Dragon Ball Z: Sagas
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase. On a held out benchmark of 69 real console functions it starts from raw `m2c` output and reaches 63.6% aligned on average (75% median), with 8 exact matches.
 
+## Overseer benchmark: 500 functions from 16 games, one team, 30 minutes
+
+500 functions from 16 commercial console games (PS2, PSP, GameCube and GBA), about 31 from each, built with eight compilers across GCC, SN Systems, Metrowerks and agbcc. None of them is in the 60 function benchmark or matched in any of our decompilation projects. Every function starts from raw `m2c` output.
+
+One overseer agent (Gemini 4 Neon, high) gets all 500 in one fresh, empty workspace and a single 30 minute clock for the whole team. It starts as many worker agents (Gemini 4 Hydrogen, high) as it sees fit, writes each one its own brief, follows their progress and moves work around; every worker stops when the clock runs out. Neither side can see earlier attempts. Every result was verified again outside the workspace.
+
+| Stage | Functions | Compiles | Exact (`VERIFIED`) | Exact % | Mean aligned | Median aligned | 80% or better | 95% or better |
+|---|---|---|---|---|---|---|---|---|
+| Raw `m2c` seed | 500 | 0 | 0 | 0.0% | 0.0% | 0.0% | 0 | 0 |
+| Headless `kintoun permute` (30s per function) | 500 | 358 | 44 | 8.8% | 39.2% | 33.3% | 101 | 50 |
+| **Gemini 4 Neon (high) overseer + Gemini 4 Hydrogen (high) workers + Kintoun, 30 min** | **500** | **500** | **198** | **39.6%** | **69.1%** | **84.4%** | **261** | **209** |
+
+Neon triaged all 500 with Kintoun first, then started 57 Hydrogen workers over the 30 minutes, 32 at most at once: two per game at first, then smaller targeted rounds.
+
+Full tables by size and kind are in [docs/BENCHMARKS.md](docs/BENCHMARKS.md). The overseer and worker briefs are generic templates (`src/kintoun/templates/overseer/`): a new overseer test only needs a run file with its models, effort, clock and worker limit.
+
 ## Beyond game development
 
 Outside of game development, the same concept could be applied to the use of AI models to help adapt aging infrastructure and defense systems, restore lost manufacturing pipelines and tool chains, and allow modern and aging low and high level systems to natively speak to each other.
@@ -143,6 +159,9 @@ kintoun engine gate --candidate combined --count 40 --confirm-runs 2 --ablate --
 # Reproducible 60-function zero-prior-context agent benchmark (30m per-function limit):
 kintoun agent-bench select --count 60 -o manifest_60.json
 kintoun agent-bench run --manifest manifest_60.json --whole-set --runner agy --model gemini-4-neon-high --effort high --timeout 30m -o REPORT.md
+
+# Overseer benchmark: one overseer agent leads worker agents on one clock (run file from templates/overseer/run.example.toml):
+kintoun overseer-bench run.toml --out-dir runs/overseer
 ```
 
 ## Plugging into `dbzsagas-decomp`

@@ -165,6 +165,10 @@ class TeamBroker:
         p.with_suffix(".tmp").rename(p)
 
     def _spawn(self, n: str, brief_path: Path) -> None:
+        try:
+            brief_path.resolve().relative_to(self.ws.resolve())
+        except ValueError:
+            return self._reply(n, False, "refused: the brief file must be inside the workspace")
         remaining = self.deadline - time.monotonic()
         if remaining < 30:
             return self._reply(n, False, "refused: less than 30 s left on the clock")
@@ -172,10 +176,6 @@ class TeamBroker:
             return self._reply(n, False, f"refused: {self.max} workers already running (the run's limit)")
         if self.min_free and _meminfo_gb("MemAvailable") < self.min_free:
             return self._reply(n, False, f"refused: the machine has less than {self.min_free} GB of free memory; wait for a worker to finish or stop one")
-        try:
-            brief_path.resolve().relative_to(self.ws.resolve())
-        except ValueError:
-            return self._reply(n, False, "refused: the brief file must be inside the workspace")
         wid = f"w{len(self.workers) + 1}"
         wdir = self.ov / "workers" / wid
         wdir.mkdir(parents=True, exist_ok=True)

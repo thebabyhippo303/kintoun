@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Overseer benchmark (`kintoun overseer-bench`)
+* **One overseer agent leads worker agents on one clock (`overseer_bench.py`):** the overseer gets a multi game function set in one workspace with `spawn-worker`, `worker-status`, `worker-log` and `stop-worker`; it decides how many workers to start and what each one does. Workers are started by a broker in the harness (each through its own command template), everyone stops when the clock runs out, and every function is verified again outside the workspace. A spawn is refused while the machine is low on free memory.
+* **Generic templates (`templates/overseer/`):** the overseer brief, the worker brief and an example run file; every overseer test fills in the same briefs from its run file (models, effort, commands, clock, worker limit).
+* **First result:** 500 functions from 16 games, Gemini 4 Neon overseer with Gemini 4 Hydrogen workers, 30 minutes: all 500 compile, 198 match exactly, 69.1% mean alignment (84.4% median); headless alone: 358 compile, 44 exact, 39.2%.
+
 ## 0.8.0
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase.
