@@ -81,34 +81,37 @@ Headless search is designed to seed and accelerate human or AI matching, especia
 3. **30-minute per-function ceiling (`--timeout 30m`):** Easy functions finish in under a minute while complex functions can iterate with `kintoun context`, hand edits, `KINTOUN_*` macros, `kintoun permute`, and `kintoun close` for up to 30 minutes (`1800s`). If a session hits the 30-minute limit mid-edit, the harness recovers the highest-ranked valid real-C candidate from `candidates.sqlite3` / `trajectories.jsonl`.
 4. **Independent ground-truth audit:** Every output is re-verified outside the agent workspace with `verify_source(..., forbid_asm=True)`.
 
-#### Whole set: one zero-prior-context `gemini-4-neon-high` agent, 30 minutes for all 60 functions
+#### Whole set: one zero-prior-context agent, 30 minutes for all 60 functions
 
-One agent session (`gemini-4-neon-high`, effort high) received all 60 functions in one fresh workspace with a single 30-minute clock for the whole set (`kintoun agent-bench run --whole-set --timeout 30m`) and decided by itself how to split its time. It used the full 30 minutes. Every function was then re-verified outside the workspace with `verify_source(..., forbid_asm=True)`.
+Each agent session received all 60 functions in one fresh workspace with a single 30-minute clock for the whole set (`kintoun agent-bench run --whole-set --timeout 30m`) and decided by itself how to split its time. Every agent got the same brief, the same raw `m2c` starting C and no access to any earlier attempt. Every function was then re-verified outside the workspace with `verify_source(..., forbid_asm=True)`.
 
 | Stage | Functions | Compiles | Exact (`VERIFIED`) | Exact % | Mean aligned | Median aligned | 80% or better | 95% or better |
 |---|---|---|---|---|---|---|---|---|
 | Raw `m2c` seed | 60 | 0 | 0 | 0.0% | 0.0% | 0.0% | 0 | 0 |
 | Headless `kintoun permute` (30s per function) | 60 | 38 | 9 | 15.0% | 47.1% | 49.3% | 22 | 9 |
-| **One `gemini-4-neon-high` agent + Kintoun (30 min, whole set)** | **60** | **60** | **13** | **21.7%** | **83.5%** | **88.6%** | **46** | **20** |
+| **Gemini 4 Neon (high) + Kintoun, 30 min whole set** | **60** | **60** | **13** | **21.7%** | **83.5%** | **88.6%** | **46** | **20** |
+| **Claude Opus 5.5 (high) + Kintoun, 30 min whole set*** | **60** | **60** | **12** | **20.0%** | **79.3%** | **87.6%** | **41** | **18** |
 
-| Size tier | Functions | Headless mean | Headless exact | Agent exact | Agent mean aligned | Agent median aligned |
-|---|---|---|---|---|---|---|
-| `tiny_24_64B` | 12 | 85.8% | 7 | 10 | 96.4% | 100.0% |
-| `small_68_136B` | 12 | 45.6% | 2 | 3 | 79.5% | 89.4% |
-| `medium_140_260B` | 12 | 36.3% | 0 | 0 | 73.2% | 83.2% |
-| `large_264_480B` | 12 | 39.6% | 0 | 0 | 89.5% | 88.7% |
-| `xlarge_484_960B` | 12 | 28.2% | 0 | 0 | 78.8% | 85.4% |
+\* Claude Opus 5.5 (high): session ended at 27.8 of the 30 minutes when the service's usage limit was reached.
 
-| Family | Functions | Headless mean | Headless exact | Agent exact | Agent mean aligned | Agent median aligned |
-|---|---|---|---|---|---|---|
-| `leaf_int` | 10 | 89.9% | 7 | 10 | 100.0% | 100.0% |
-| `branch_guard` | 10 | 43.0% | 0 | 0 | 76.5% | 84.5% |
-| `loop` | 10 | 45.7% | 0 | 1 | 74.6% | 90.1% |
-| `float_fpu` | 10 | 19.2% | 0 | 0 | 89.6% | 90.5% |
-| `call_chain` | 10 | 59.7% | 2 | 2 | 87.1% | 88.0% |
-| `vtable_dispatch` | 10 | 25.2% | 0 | 0 | 73.1% | 82.0% |
+| Size tier | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean |
+|---|---|---|---|---|---|---|---|
+| `tiny_24_64B` | 12 | 85.8% | 7 | 10 | 96.4% | 9 | 92.4% |
+| `small_68_136B` | 12 | 45.6% | 2 | 3 | 79.5% | 3 | 79.5% |
+| `medium_140_260B` | 12 | 36.3% | 0 | 0 | 73.2% | 0 | 68.6% |
+| `large_264_480B` | 12 | 39.6% | 0 | 0 | 89.5% | 0 | 83.8% |
+| `xlarge_484_960B` | 12 | 28.2% | 0 | 0 | 78.8% | 0 | 72.4% |
 
-All 60 functions compile after the session (22 did not with headless search alone). Exact matches came from the small functions; the 140 to 888 byte functions end 73% to 90% aligned on average, a starting point for finishing by hand.
+| Family | Functions | Headless mean | Headless exact | Gemini 4 Neon exact | Gemini 4 Neon mean | Claude Opus 5.5 exact | Claude Opus 5.5 mean |
+|---|---|---|---|---|---|---|---|
+| `leaf_int` | 10 | 89.9% | 7 | 10 | 100.0% | 9 | 97.9% |
+| `branch_guard` | 10 | 43.0% | 0 | 0 | 76.5% | 0 | 76.8% |
+| `loop` | 10 | 45.7% | 0 | 1 | 74.6% | 1 | 68.1% |
+| `float_fpu` | 10 | 19.2% | 0 | 0 | 89.6% | 0 | 84.6% |
+| `call_chain` | 10 | 59.7% | 2 | 2 | 87.1% | 2 | 83.3% |
+| `vtable_dispatch` | 10 | 25.2% | 0 | 0 | 73.1% | 0 | 65.4% |
+
+All agents compile every function (22 did not with headless search alone). Exact matches come from the small functions; the 140 to 888 byte functions end roughly 65% to 90% aligned on average, a starting point for finishing by hand.
 
 ## Reproducing
 
