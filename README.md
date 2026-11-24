@@ -59,6 +59,7 @@ kintoun permute src/MyClass/MyFunc.c --func MyClass__MyFunc --budget 60 --write
 ```
 
 ## Documentation
+* [AGENTS.md](AGENTS.md) - setup, workflow, and maintenance playbook for AI coding agents
 * [docs/USAGE.md](docs/USAGE.md) - a full matching session: setup, verify, permute, search length, reading results, MCP
 * [docs/ARCHITECTURES.md](docs/ARCHITECTURES.md) - what each engine (PowerPC, MIPS, ARM and Thumb) reads, links, scores and repairs
 * [docs/BENCHMARKS.md](docs/BENCHMARKS.md) - held out benchmark results by platform and compiler

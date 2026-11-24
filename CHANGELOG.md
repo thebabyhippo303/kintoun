@@ -16,7 +16,7 @@ Kintoun has been trained through research and development on TNRP's 15 game code
 ### Multi agent queue, Overseer and agent skills
 * **Work queue with time limits (`queue.py`, `kintoun queue`, 14 MCP tools):** SQLite WAL multi agent queue supporting simultaneous claims per agent, enforced per function time clocks (refusing early non structural give ups), timeout quarantine and `unquarantine`, strict re verification on submit and research note logging.
 * **Out of the box Overseer (`overseer.py`, `kintoun overseer`):** Runs with `--brain none` ($0 code only reflexes, no API key needed), `--brain single` (one API key or local OpenAI compatible Ollama/vLLM endpoint for state gated triage, rule checks and steering under a daily USD cap) or `--brain dual` (separate fast triage/check brain and main brain with fallback).
-* **Agent skill packs (`skills/CLI-OVERSEER/` and `skills/kintoun-match/`):** Includes `CLI-OVERSEER` for standard CLI coding agents to orchestrate Matcher and Namer subagents (standalone or alongside `kintoun overseer`), plus `kintoun-match` with PowerPC, MIPS and ARM/Thumb symptom to C lookup tables. See [docs/WORKFLOWS.md](docs/WORKFLOWS.md).
+* **Agent skill packs and `AGENTS.md` (`AGENTS.md`, `skills/CLI-OVERSEER/`, `skills/kintoun-match/`):** Adds root `AGENTS.md` (version synced onboarding and setup guide for AI coding agents), `CLI-OVERSEER` for standard CLI coding agents to orchestrate Matcher and Namer subagents (standalone or alongside `kintoun overseer`), and `kintoun-match` with PowerPC, MIPS and ARM/Thumb symptom to C lookup tables. See [docs/WORKFLOWS.md](docs/WORKFLOWS.md).
 
 ## 0.2.0
 

@@ -323,7 +323,12 @@ class AgentFleetTests(unittest.TestCase):
             self.assertEqual(len(dual_models), dual_before)
 
     def test_cli_check_context_overseer_and_skills_present(self) -> None:
+        from kintoun import __version__
+
         repo_root = Path(__file__).resolve().parent.parent
+        agents_md = repo_root / "AGENTS.md"
+        self.assertTrue(agents_md.is_file())
+        self.assertIn(f"**Current Version:** `{__version__}`", agents_md.read_text(encoding="utf-8"))
         self.assertTrue((repo_root / "skills" / "CLI-OVERSEER" / "SKILL.md").is_file())
         self.assertTrue((repo_root / "skills" / "CLI-OVERSEER" / "references" / "subagent-briefs.md").is_file())
         self.assertTrue((repo_root / "skills" / "kintoun-match" / "SKILL.md").is_file())
