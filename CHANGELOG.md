@@ -10,6 +10,11 @@
 * **Third result:** the same 500 functions, Claude Fable 5.2 overseer with Claude Sonnet 5.5 workers: all 500 compile, 168 match exactly, 67.4% mean alignment (81.1% median); it started 101 workers, 40 at most at once.
 * **Fourth result:** the same 500 functions, Grok 4.7 overseer with Grok 4.7 workers: all 500 compile, 64 match exactly, 43.0% mean alignment (33.9% median); it started 4 workers, 4 at most at once.
 
+### Overseer course (`kintoun overseer-course`)
+* **A course of phases with no intervention (`overseer_course.py`):** an overseer team runs matching phases and engine building phases on fixed clocks. In an engine phase the workers improve the team's own engine in a Kintoun Engine Lab shared by every game folder, and only a gate promoted engine goes live; function file edits made then are discarded. The overseer is started fresh for each phase with that phase's brief and keeps its own notes; the functions are verified after every matching pass.
+* **Generic phase templates (`templates/overseer/phase_*.md`, `course.example.toml`).**
+* **First result:** 500 MIPS functions from 11 games, Gemini 4 Neon overseer with Gemini 4 Hydrogen workers, 30 + 30 + 30 minutes: 161 exact and 65.6% after the first pass; the promoted engine went live for the second pass; final 179 exact, 70.5% mean (80.9% median). Headless alone: 365 compile, 43 exact, 39.9%.
+
 ## 0.8.0
 
 Kintoun has been trained through research and development on TNRP's 15 game codebase.

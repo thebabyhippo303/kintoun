@@ -183,6 +183,48 @@ How each overseer ran its team:
 
 Every team compiles all 500 (142 did not with headless search alone).
 
+## Overseer course: 500 MIPS functions, match, build an engine, match again (`kintoun overseer-course`)
+
+500 functions from 11 commercial PS2 and PSP games, all MIPS, about 45 from each, built with five compilers across GCC, SN Systems and Metrowerks. None of them is in the 60 function benchmark, in the 500 function overseer benchmark or matched in any of our decompilation projects. Every function starts from raw `m2c` output.
+
+One overseer team runs a fixed course with no intervention: a 30 minute matching pass, then 30 minutes in which the workers switch to building the team's own copy of Kintoun's engine and the overseer adjusts its strategy, then a second 30 minute matching pass. Function files are frozen during engine building: anything changed in them then is discarded. A new engine only goes live if Kintoun's promotion gate shows it beating the current one on functions neither has seen. The overseer is started fresh for every phase and carries its strategy in its own notes. Every result was verified again outside the workspace.
+
+| Stage | Functions | Compiles | Exact (`VERIFIED`) | Exact % | Mean aligned | Median aligned | 80% or better | 95% or better |
+|---|---|---|---|---|---|---|---|---|
+| Raw `m2c` seed | 500 | 0 | 0 | 0.0% | 0.0% | 0.0% | 0 | 0 |
+| Headless `kintoun permute` (30s per function) | 500 | 365 | 43 | 8.6% | 39.9% | 35.1% | 96 | 48 |
+| Gemini 4 Neon (high) overseer + Gemini 4 Hydrogen (high) workers, after the first matching pass | 500 | 500 | 161 | 32.2% | 65.6% | 73.7% | 227 | 179 |
+| **Gemini 4 Neon (high) overseer + Gemini 4 Hydrogen (high) workers, after the second matching pass (final)** | **500** | **500** | **179** | **35.8%** | **70.5%** | **80.9%** | **255** | **199** |
+
+| Phase | What the team did | Workers started | Most at once | Worker minutes |
+|---|---|---|---|---|
+| 1. First matching pass (30 min) | matched functions | 39 | 22 | 462 |
+| 2. Engine building (30 min) | built the team's own engine in a shared Kintoun Engine Lab | 5 | 5 | 64 |
+| 3. Second matching pass (30 min) | matched functions | 38 | 22 | 537 |
+
+The builders' engine passed Kintoun's promotion gate two minutes before the engine phase ended (the gate requires more exact matches and a better average than the current engine on functions neither has seen, with no exact match lost), and the second pass used it in every game. The course measures the whole team; it does not separate the new engine's share of the gain from the second pass's extra time.
+
+### By size tier
+
+| Size tier | Functions | Headless exact | Headless mean | First pass exact | First pass mean | Final exact | Final mean |
+|---|---|---|---|---|---|---|---|
+| `tiny_24_64B` | 63 | 29 | 74.4% | 48 | 88.1% | 49 | 89.3% |
+| `small_68_136B` | 80 | 7 | 50.3% | 32 | 70.5% | 35 | 73.7% |
+| `medium_140_260B` | 111 | 6 | 40.6% | 35 | 67.9% | 38 | 71.4% |
+| `large_264_480B` | 127 | 1 | 33.3% | 32 | 61.6% | 34 | 65.8% |
+| `xlarge_484_960B` | 119 | 0 | 20.9% | 14 | 52.4% | 23 | 62.6% |
+
+### By kind of function
+
+| Family | Functions | Headless exact | Headless mean | First pass exact | First pass mean | Final exact | Final mean |
+|---|---|---|---|---|---|---|---|
+| `leaf_int` | 50 | 15 | 56.6% | 29 | 74.6% | 30 | 78.4% |
+| `branch_guard` | 112 | 13 | 46.9% | 58 | 74.5% | 61 | 76.6% |
+| `loop` | 82 | 1 | 32.5% | 15 | 56.6% | 19 | 64.1% |
+| `float_fpu` | 79 | 1 | 28.1% | 12 | 56.2% | 13 | 63.9% |
+| `call_chain` | 87 | 10 | 44.8% | 27 | 68.3% | 32 | 73.2% |
+| `vtable_dispatch` | 90 | 3 | 34.1% | 20 | 63.3% | 24 | 67.5% |
+
 ## Reproducing
 
 ### 1. Headless 30s baseline
@@ -234,3 +276,13 @@ kintoun overseer-bench run.toml --out-dir runs/overseer
 ```
 
 The overseer brief (`overseer.md`) and worker brief (`worker.md`) are filled in from the run file, so every overseer test uses the same briefs. Inside the workspace the overseer has `spawn-worker <brief file>`, `worker-status`, `worker-log <id>` and `stop-worker <id>`; workers are started outside the overseer's own process, so each side can run under its own agent CLI or sandbox.
+
+### 4. Overseer course
+
+Copy `src/kintoun/templates/overseer/course.example.toml`, point `[set] manifest` at a multi game manifest, set the overseer and worker models and commands, and list the phases (`kind = "match"` or `"engine"`, each with its own `duration`), then run:
+
+```bash
+kintoun overseer-course course.toml --out-dir runs/course
+```
+
+Every game folder shares one Engine Lab; the overseer is started fresh for each phase with that phase's brief; function file edits made during an engine phase are discarded; the functions are verified after every matching pass.
