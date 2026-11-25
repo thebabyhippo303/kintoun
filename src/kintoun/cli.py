@@ -1435,6 +1435,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_ab.add_argument("--json", action="store_true", help="Emit JSON output.")
     p_ab.set_defaults(func_cb=cmd_agent_bench)
     __import__("kintoun.overseer_bench", fromlist=["add_parser"]).add_parser(sub)
+    __import__("kintoun.overseer_course", fromlist=["add_parser"]).add_parser(sub)
 
     p_pf = sub.add_parser("probe-flags", help="Test a candidate C file across compiler flag matrices to find optimal TU flags.")
     p_pf.add_argument("source", help="Path to candidate .c file.")

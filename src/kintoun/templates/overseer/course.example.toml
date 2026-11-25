@@ -1,0 +1,42 @@
+# Kintoun overseer course: one overseer team runs a fixed course of phases with no intervention.
+# Same [set], [overseer], [workers] and [machine] tables as run.example.toml, plus the phases.
+# Run: kintoun overseer-course course.toml --out-dir runs/<name>
+
+[set]
+manifest = "sets/mips500/manifest.json"
+headless = "sets/mips500/headless.json"
+
+[overseer]
+label = "Gemini 4 Neon (high)"
+model = "gemini-4-neon-high"
+effort = "high"
+cmd = "agy -p {prompt} --model {model} --effort {effort} --dangerously-skip-permissions --disable-slash-commands --new-project --print-timeout {timeout_s}s"
+
+[workers]
+label = "Gemini 4 Hydrogen (high)"
+model = "gemini-4-hydrogen-high"
+effort = "high"
+cmd = "agy -p {prompt} --model {model} --effort {effort} --dangerously-skip-permissions --disable-slash-commands --new-project --print-timeout {timeout_s}s"
+max = 0
+min_free_mem_gb = 1.5
+
+[machine]
+note = ""
+
+# kind = "match": match functions. kind = "engine": workers build the team's engine in the shared Engine Lab,
+# the overseer adjusts strategy; function file edits are discarded at the end of the phase.
+# Optional per phase: overseer_template, worker_template (default templates/overseer/phase_<kind>_*.md).
+[[phases]]
+name = "First matching pass"
+kind = "match"
+duration = "30m"
+
+[[phases]]
+name = "Engine building"
+kind = "engine"
+duration = "30m"
+
+[[phases]]
+name = "Second matching pass"
+kind = "match"
+duration = "30m"
